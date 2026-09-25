@@ -1,5 +1,4 @@
-$env:Path = "$env:LOCALAPPDATA\Google\Cloud SDK\google-cloud-sdk\bin;$env:Path"
-gcloud auth listFROM python:3.12-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 COPY requirements.txt .
