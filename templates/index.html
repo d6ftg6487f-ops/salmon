@@ -4,38 +4,99 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ひらめき数当てゲーム</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@500;700;900&display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-<main>
-    <div class="eyebrow">A small game for big intuition</div>
-    <h1>ひらめき<br>数当てゲーム</h1>
-    <section>
+<main class="console">
+    <header class="header">
+        <div class="logo" aria-hidden="true">?</div>
+        <div>
+            <div class="eyebrow">A small game for big intuition</div>
+            <h1 class="title">ひらめき<br>数当てゲーム</h1>
+        </div>
+    </header>
+
+    <section class="panel">
     {% if not game %}
-        <p>隠された数字を、ヒントを頼りに当てよう。</p>
+        <p class="lead">隠された数字を、ヒントを頼りに当てよう。</p>
         <form method="post">
             <input type="hidden" name="action" value="start">
-            <label for="level">難易度</label>
-            <select id="level" name="level">
-            {% for key, item in levels.items() %}
-                <option value="{{ key }}">{{ item.name }}級：1〜{{ item.maximum }} / {{ item.attempts }}回</option>
-            {% endfor %}
-            </select>
-            <button type="submit">ゲームを始める</button>
+            <fieldset>
+                <legend>Select Level</legend>
+                <div class="level-grid">
+                {% for key, item in levels.items() %}
+                    <label class="level-card">
+                        <input type="radio" name="level" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+                        <span class="level-card__body">
+                            <span class="level-card__index">LV.{{ '%02d' % loop.index }}</span>
+                            <span class="level-card__name">{{ item.name }}級</span>
+                            <span class="level-card__spec"><span>RANGE</span>1–{{ item.maximum }}</span>
+                            <span class="level-card__spec"><span>LIFE</span>{{ item.attempts }}回</span>
+                        </span>
+                    </label>
+                {% endfor %}
+                </div>
+            </fieldset>
+            <div class="button-row">
+                <button type="submit">ゲームを始める <span class="btn-icon" aria-hidden="true">▶</span></button>
+            </div>
         </form>
     {% else %}
-        <p class="meta">{{ level.name }}級 / {{ game.turn }} / {{ level.attempts }}回</p>
-        {% if game.result %}<p class="result">{{ game.result }}</p>{% endif %}
+        <div class="hud">
+            <div class="hud__item">
+                <span class="hud__label">LEVEL</span>
+                <span class="hud__value">{{ level.name }}級</span>
+            </div>
+            <div class="hud__item">
+                <span class="hud__label">RANGE</span>
+                <span class="hud__value">1–{{ level.maximum }}</span>
+            </div>
+            <div class="hud__item">
+                <span class="hud__label">TURN</span>
+                <span class="hud__value">{{ game.turn }}<small> / {{ level.attempts }}</small></span>
+            </div>
+        </div>
+
+        <div class="meter" aria-hidden="true">
+            {% for i in range(level.attempts) %}<span class="meter__seg{% if i < game.turn %} is-used{% endif %}"></span>{% endfor %}
+        </div>
+
+        <div class="display{% if game.finished %} is-finished{% endif %}" role="status" aria-live="polite">
+            <span class="display__label">&gt; OUTPUT</span>
+            <p class="display__text">{% if game.result %}{{ game.result }}{% else %}数字を入力せよ{% endif %}</p>
+        </div>
+
         {% if not game.finished %}
-        <form method="post">
+        <form method="post" class="guess-form">
             <input type="hidden" name="action" value="guess">
-            <label for="guess">1〜{{ level.maximum }}の数字</label>
-            <input id="guess" name="guess" type="number" min="1" max="{{ level.maximum }}" required autofocus>
-            <button type="submit">予想する</button>
+            <label for="guess" class="field-label">Input 1–{{ level.maximum }}</label>
+            <div class="guess-row">
+                <input id="guess" name="guess" type="number" min="1" max="{{ level.maximum }}" placeholder="??" required autofocus>
+                <button type="submit">予想する <span class="btn-icon" aria-hidden="true">▶</span></button>
+            </div>
         </form>
         {% endif %}
-        {% if game.hints %}<ul>{% for hint in game.hints %}<li>{{ hint }}</li>{% endfor %}</ul>{% endif %}
-        <form method="post"><input type="hidden" name="action" value="reset"><button type="submit">最初から</button></form>
+
+        {% if game.hints %}
+        <div class="log">
+            <p class="log__title">// HINT LOG</p>
+            <ol>
+            {% for hint in game.hints %}
+                <li><span class="log__no">#{{ '%02d' % loop.index }}</span><span>{{ hint }}</span></li>
+            {% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+
+        <div class="panel-footer">
+            <form method="post">
+                <input type="hidden" name="action" value="reset">
+                <button type="submit" class="secondary"><span aria-hidden="true">↺</span> 最初から</button>
+            </form>
+        </div>
     {% endif %}
     </section>
 </main>
