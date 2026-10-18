@@ -11,11 +11,14 @@ toggleButton.addEventListener("click", async () => {
 
   try {
     const response = await fetch("/api/toggle", { method: "POST" });
+
     if (!response.ok) {
       throw new Error(`Toggle request failed with status ${response.status}`);
     }
 
     const state = await response.json();
+
+    document.body.classList.toggle("lights-on", state.is_on);
     bulb.classList.toggle("is-on", state.is_on);
     bulb.setAttribute("aria-label", state.is_on ? "点灯中" : "消灯中");
     toggleButton.setAttribute("aria-pressed", String(state.is_on));
