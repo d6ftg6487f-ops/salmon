@@ -3,53 +3,70 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f4f1e9">
+    <meta name="theme-color" content="#101319">
     <title>豆電球をつけたり消したりするだけ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body class="{% if state.is_on %}lights-on{% endif %}">
     <main class="page">
         <header class="heading">
-            <p class="eyebrow">特に意味はありません</p>
+            <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
             <h1>豆電球を<br>つけたり消したりするだけ</h1>
         </header>
 
-        <section class="switchboard" aria-label="豆電球">
-            <div
-                class="bulb{% if state.is_on %} is-on{% endif %}"
-                id="bulb"
-                role="img"
-                aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
-                aria-live="polite"
-            >
-                <span class="bulb__glass" aria-hidden="true"></span>
-                <span class="bulb__neck" aria-hidden="true"></span>
-                <span class="bulb__base" aria-hidden="true"></span>
+        <section class="switchboard" aria-label="豆電球の操作">
+            <div class="scene">
+                <div class="scene__left-wall" aria-hidden="true"></div>
+                <div class="scene__right-wall" aria-hidden="true"></div>
+                <div class="scene__floor" aria-hidden="true"></div>
+                <div class="scene__light" aria-hidden="true"></div>
+                <div class="scene__shadow" aria-hidden="true"></div>
+
+                <div
+                    class="bulb{% if state.is_on %} is-on{% endif %}"
+                    id="bulb"
+                    role="img"
+                    aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
+                >
+                    <span class="bulb__halo" aria-hidden="true"></span>
+                    <span class="bulb__glass" aria-hidden="true"></span>
+                    <span class="bulb__filament" aria-hidden="true"></span>
+                    <span class="bulb__neck" aria-hidden="true"></span>
+                    <span class="bulb__base" aria-hidden="true"></span>
+                    <span class="bulb__contact" aria-hidden="true"></span>
+                </div>
             </div>
 
-            <p class="status" id="status" aria-live="polite">
-                {% if state.is_on %}ついています{% else %}消えています{% endif %}
-            </p>
+            <div class="controls">
+                <div class="status-group">
+                    <p class="status" id="status" aria-live="polite">
+                        {% if state.is_on %}ついています{% else %}消えています{% endif %}
+                    </p>
+                    <p class="counter">
+                        押した回数 <span id="count">{{ state.press_count }}</span> 回
+                    </p>
+                </div>
 
-            <button
-                class="toggle"
-                id="toggle"
-                type="button"
-                aria-pressed="{{ 'true' if state.is_on else 'false' }}"
-            >
-                <span class="toggle__indicator" aria-hidden="true"></span>
-                <span id="button-label">{% if state.is_on %}消す{% else %}つける{% endif %}</span>
-            </button>
+                <button
+                    class="toggle"
+                    id="toggle"
+                    type="button"
+                    aria-pressed="{{ 'true' if state.is_on else 'false' }}"
+                >
+                    <span id="button-label">
+                        {% if state.is_on %}消す{% else %}つける{% endif %}
+                    </span>
+                </button>
+            </div>
 
-            <p class="counter">
-                押した回数 <span id="count">{{ state.press_count }}</span> 回
-            </p>
             <p class="error" id="error" role="alert" hidden>
                 保存できませんでした。少し待ってからもう一度押してください。
             </p>
         </section>
-        <footer>押しても、特に何も起きません。</footer>
+
+        <footer>部屋の隅に、小さな明かり。</footer>
     </main>
+
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
 </body>
 </html>
