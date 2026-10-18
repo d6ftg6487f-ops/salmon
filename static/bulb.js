@@ -4,6 +4,7 @@ const statusText = document.querySelector("#status");
 const buttonLabel = document.querySelector("#button-label");
 const pressCount = document.querySelector("#count");
 const errorMessage = document.querySelector("#error");
+const scene = document.querySelector(".scene");
 
 toggleButton.addEventListener("click", async () => {
   toggleButton.disabled = true;
@@ -32,3 +33,15 @@ toggleButton.addEventListener("click", async () => {
     toggleButton.disabled = false;
   }
 });
+
+// マウス位置に応じて、手前（電球）と奥（壁）にわずかな視差をつける
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+if (!reduceMotion) {
+  window.addEventListener("pointermove", (event) => {
+    const x = event.clientX / window.innerWidth - 0.5;
+    const y = event.clientY / window.innerHeight - 0.5;
+    scene.style.setProperty("--px", x.toFixed(3));
+    scene.style.setProperty("--py", y.toFixed(3));
+  });
+}
