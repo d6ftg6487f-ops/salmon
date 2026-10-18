@@ -1,24 +1,48 @@
-# 数当てゲーム
+# 豆電球をつけたり消したりするだけ
 
-## GitHub Actions で Cloud Run にデプロイする
+豆電球の点灯・消灯を切り替えるだけの Flask アプリです。状態とボタンを押した回数を Cloud SQL に保存します。Cloud SQL は PostgreSQL / MySQL に対応しています。
 
-このアプリは Dockerfile を使って Google Cloud Run にデプロイできます。
-`main` ブランチへ push するたびに `.github/workflows/deploy.yml` が実行されます。
+## ローカルで実行
 
-### 事前に必要なもの
+Python 3.12 以降を使い、依存関係をインストールして起動します。
 
-1. Google Cloud プロジェクトを作成し、課金を有効にする。
-2. 次の API を有効にする。
-	- Cloud Run Admin API
-	- Cloud Build API
-	- Artifact Registry API
-3. GitHub Actions 用の Workload Identity Federation とサービスアカウントを作成する。
-4. サービスアカウントに、少なくとも次の権限を付与する。
-	- Cloud Run Admin
-	- Service Account User
-	- Storage Admin（Cloud Build のソース保存用）
+```powershell
+python -m pip install -r requirements.txt
+python app.py
+```
 
-### Google Cloud 側の設定例
+Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
+
+テスト:
+
+```powershell
+python -m unittest discover -s tests
+```
+
+## GitHub Actions から Cloud Run にデプロイ
+
+`main` ブランチへの push で `.github/workflows/deploy.yml` が実行され、Cloud Run にデプロイされます。
+
+### Google Cloud の準備
+
+1. Google Cloud プロジェクトで課金を有効にし、次の API を有効にします。
+   - Cloud Run Admin API
+   - Cloud Build API
+   - Artifact Registry API
+   - Cloud SQL Admin API
+   - Secret Manager API
+2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
+3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
+4. GitHub Actions 用の Workload Identity Federation とサービスアカウントを作成します。サービスアカウントには以下のロールが必要です。
+   - Cloud Run Admin (`roles/run.admin`)
+   - Service Account User (`roles/iam.serviceAccountUser`)
+   - Storage Admin (`roles/storage.admin`)
+   - Cloud Build Editor (`roles/cloudbuild.builds.editor`)
+   - Artifact Registry Writer (`roles/artifactregistry.writer`)
+   - Cloud SQL Client (`roles/cloudsql.client`)
+   - Secret Manager Secret Accessor (`roles/secretmanager.secretAccessor`)
+
+### Workload Identity Federation の設定例
 
 Google Cloud SDK でログインした後、PowerShell で実行します。`OWNER/REPO` は GitHub の所有者とリポジトリ名に置き換えてください。
 
@@ -31,7 +55,7 @@ $PROVIDER_ID = "github"
 $SERVICE_ACCOUNT = "github-actions"
 
 gcloud config set project $PROJECT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com
 
 gcloud iam service-accounts create $SERVICE_ACCOUNT --project $PROJECT_ID
 $SERVICE_ACCOUNT_EMAIL = "$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com"
@@ -41,6 +65,8 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SER
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/cloudbuild.builds.editor
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/artifactregistry.writer
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/iam.serviceAccountUser
+gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/cloudsql.client
+gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/secretmanager.secretAccessor
 
 gcloud iam workload-identity-pools create $POOL_ID --project $PROJECT_ID --location global --display-name "GitHub Actions"
 gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID --project $PROJECT_ID --location global --workload-identity-pool $POOL_ID --display-name "GitHub" --issuer-uri "https://token.actions.githubusercontent.com" --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" --attribute-condition "assertion.repository == '$GITHUB_REPO'"
@@ -54,26 +80,25 @@ Write-Output "GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER"
 Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
 ```
 
-`roles/storage.admin` などの権限はプロジェクト単位で付与する簡易例です。本番運用では、専用バケットや Artifact Registry に対象を絞った権限へ縮小してください。
+本番環境では、サービスアカウントのロールをプロジェクト全体に付与するのではなく、可能な限り対象リソースに絞ってください。特に Secret Manager Secret Accessor は、アプリ用パスワードのシークレットに対して付与するのが推奨です。
 
-### GitHub の設定
+### GitHub Actions の設定
 
-リポジトリの **Settings > Secrets and variables > Actions** に、次を登録します。
+リポジトリの **Settings > Secrets and variables > Actions** で設定します。
 
 #### Variables
 
 - `GCP_PROJECT_ID`: Google Cloud のプロジェクト ID
+- `CLOUD_SQL_CONNECTION_NAME`: `PROJECT_ID:REGION:INSTANCE_ID` 形式の Cloud SQL 接続名
+- `DB_DIALECT`: `postgres` または `mysql`
+- `DB_USER`: Cloud SQL のアプリ用ユーザー名
+- `DB_NAME`: Cloud SQL のデータベース名
 
 #### Secrets
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`
-- `GCP_SERVICE_ACCOUNT`: GitHub Actions 用サービスアカウントのメールアドレス
-- `FLASK_SECRET_KEY`: 長いランダム文字列。本番環境では必ず設定する
+- `GCP_SERVICE_ACCOUNT`: GitHub Actions と Cloud Run が使用するサービスアカウントのメールアドレス
 
-`FLASK_SECRET_KEY` は PowerShell で `python -c "import secrets; print(secrets.token_urlsafe(32))"` を実行して生成できます。
+Cloud Run の DB パスワードは GitHub に登録せず、Google Cloud Secret Manager の `applearning-db-password` に保存してください。
 
-GitHub の **Settings > Secrets and variables > Actions > Variables** に `GCP_PROJECT_ID` を登録し、Secrets に上記 3 つを登録してください。
-
-### デプロイ先
-
-初回デプロイ後、Cloud Run が発行する URL を開いて確認します。リージョンを変更する場合は、ワークフローの `REGION` を変更してください。
+Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。

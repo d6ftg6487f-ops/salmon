@@ -3,102 +3,53 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ひらめき数当てゲーム</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@500;700;900&display=swap">
+    <meta name="theme-color" content="#f4f1e9">
+    <title>豆電球をつけたり消したりするだけ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-<main class="console">
-    <header class="header">
-        <div class="logo" aria-hidden="true">?</div>
-        <div>
-            <div class="eyebrow">A small game for big intuition</div>
-            <h1 class="title">ひらめき<br>数当てゲーム</h1>
-        </div>
-    </header>
+    <main class="page">
+        <header class="heading">
+            <p class="eyebrow">特に意味はありません</p>
+            <h1>豆電球を<br>つけたり消したりするだけ</h1>
+        </header>
 
-    <section class="panel">
-    {% if not game %}
-        <p class="lead">隠された数字を、ヒントを頼りに当てよう。</p>
-        <form method="post">
-            <input type="hidden" name="action" value="start">
-            <fieldset>
-                <legend>Select Level</legend>
-                <div class="level-grid">
-                {% for key, item in levels.items() %}
-                    <label class="level-card">
-                        <input type="radio" name="level" value="{{ key }}" {% if loop.first %}checked{% endif %}>
-                        <span class="level-card__body">
-                            <span class="level-card__index">LV.{{ '%02d' % loop.index }}</span>
-                            <span class="level-card__name">{{ item.name }}級</span>
-                            <span class="level-card__spec"><span>RANGE</span>1–{{ item.maximum }}</span>
-                            <span class="level-card__spec"><span>LIFE</span>{{ item.attempts }}回</span>
-                        </span>
-                    </label>
-                {% endfor %}
-                </div>
-            </fieldset>
-            <div class="button-row">
-                <button type="submit">ゲームを始める <span class="btn-icon" aria-hidden="true">▶</span></button>
+        <section class="switchboard" aria-label="豆電球">
+            <div
+                class="bulb{% if state.is_on %} is-on{% endif %}"
+                id="bulb"
+                role="img"
+                aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
+                aria-live="polite"
+            >
+                <span class="bulb__glass" aria-hidden="true"></span>
+                <span class="bulb__neck" aria-hidden="true"></span>
+                <span class="bulb__base" aria-hidden="true"></span>
             </div>
-        </form>
-    {% else %}
-        <div class="hud">
-            <div class="hud__item">
-                <span class="hud__label">LEVEL</span>
-                <span class="hud__value">{{ level.name }}級</span>
-            </div>
-            <div class="hud__item">
-                <span class="hud__label">RANGE</span>
-                <span class="hud__value">1–{{ level.maximum }}</span>
-            </div>
-            <div class="hud__item">
-                <span class="hud__label">TURN</span>
-                <span class="hud__value">{{ game.turn }}<small> / {{ level.attempts }}</small></span>
-            </div>
-        </div>
 
-        <div class="meter" aria-hidden="true">
-            {% for i in range(level.attempts) %}<span class="meter__seg{% if i < game.turn %} is-used{% endif %}"></span>{% endfor %}
-        </div>
+            <p class="status" id="status" aria-live="polite">
+                {% if state.is_on %}ついています{% else %}消えています{% endif %}
+            </p>
 
-        <div class="display{% if game.finished %} is-finished{% endif %}" role="status" aria-live="polite">
-            <span class="display__label">&gt; OUTPUT</span>
-            <p class="display__text">{% if game.result %}{{ game.result }}{% else %}数字を入力せよ{% endif %}</p>
-        </div>
+            <button
+                class="toggle"
+                id="toggle"
+                type="button"
+                aria-pressed="{{ 'true' if state.is_on else 'false' }}"
+            >
+                <span class="toggle__indicator" aria-hidden="true"></span>
+                <span id="button-label">{% if state.is_on %}消す{% else %}つける{% endif %}</span>
+            </button>
 
-        {% if not game.finished %}
-        <form method="post" class="guess-form">
-            <input type="hidden" name="action" value="guess">
-            <label for="guess" class="field-label">Input 1–{{ level.maximum }}</label>
-            <div class="guess-row">
-                <input id="guess" name="guess" type="number" min="1" max="{{ level.maximum }}" placeholder="??" required autofocus>
-                <button type="submit">予想する <span class="btn-icon" aria-hidden="true">▶</span></button>
-            </div>
-        </form>
-        {% endif %}
-
-        {% if game.hints %}
-        <div class="log">
-            <p class="log__title">// HINT LOG</p>
-            <ol>
-            {% for hint in game.hints %}
-                <li><span class="log__no">#{{ '%02d' % loop.index }}</span><span>{{ hint }}</span></li>
-            {% endfor %}
-            </ol>
-        </div>
-        {% endif %}
-
-        <div class="panel-footer">
-            <form method="post">
-                <input type="hidden" name="action" value="reset">
-                <button type="submit" class="secondary"><span aria-hidden="true">↺</span> 最初から</button>
-            </form>
-        </div>
-    {% endif %}
-    </section>
-</main>
+            <p class="counter">
+                押した回数 <span id="count">{{ state.press_count }}</span> 回
+            </p>
+            <p class="error" id="error" role="alert" hidden>
+                保存できませんでした。少し待ってからもう一度押してください。
+            </p>
+        </section>
+        <footer>押しても、特に何も起きません。</footer>
+    </main>
+    <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
 </body>
 </html>

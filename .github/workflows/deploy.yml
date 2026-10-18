@@ -25,7 +25,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Set up gcloud
@@ -37,10 +37,34 @@ jobs:
           gcloud config list project
 
       - name: Deploy to Cloud Run
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          CLOUD_SQL_CONNECTION_NAME: ${{ vars.CLOUD_SQL_CONNECTION_NAME }}
+          DB_DIALECT: ${{ vars.DB_DIALECT }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_NAME: ${{ vars.DB_NAME }}
         run: |
+          for key in GCP_PROJECT_ID GCP_SERVICE_ACCOUNT CLOUD_SQL_CONNECTION_NAME DB_DIALECT DB_USER DB_NAME; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::$key must be configured in GitHub Actions."
+              exit 1
+            fi
+          done
+
+          if [[ "$DB_DIALECT" != "postgres" && "$DB_DIALECT" != "mysql" ]]; then
+            echo "::error::DB_DIALECT must be postgres or mysql."
+            exit 1
+          fi
+
+          python -c 'import json, os; keys = ("CLOUD_SQL_CONNECTION_NAME", "DB_DIALECT", "DB_USER", "DB_NAME"); json.dump({key: os.environ[key] for key in keys}, open(os.path.join(os.environ["RUNNER_TEMP"], "cloud-run-env.json"), "w"))'
+
           gcloud run deploy "$SERVICE" \
             --source . \
             --region "$REGION" \
-            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --project "$GCP_PROJECT_ID" \
+            --service-account "$GCP_SERVICE_ACCOUNT" \
             --allow-unauthenticated \
-            --set-env-vars "SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}"
+            --add-cloudsql-instances "$CLOUD_SQL_CONNECTION_NAME" \
+            --env-vars-file "$RUNNER_TEMP/cloud-run-env.json" \
+            --set-secrets "DB_PASSWORD=applearning-db-password:latest"
