@@ -5,6 +5,8 @@ const buttonLabel = document.querySelector("#button-label");
 const pressCount = document.querySelector("#count");
 const errorMessage = document.querySelector("#error");
 const scene = document.querySelector(".scene");
+const favicon = document.querySelector("#favicon");
+const themeColor = document.querySelector("#theme-color");
 
 toggleButton.addEventListener("click", async () => {
   toggleButton.disabled = true;
@@ -23,9 +25,13 @@ toggleButton.addEventListener("click", async () => {
     bulb.classList.toggle("is-on", state.is_on);
     bulb.setAttribute("aria-label", state.is_on ? "点灯中" : "消灯中");
     toggleButton.setAttribute("aria-pressed", String(state.is_on));
-    statusText.textContent = state.is_on ? "ON" : "OFF";
+    statusText.textContent = state.is_on ? "ついています" : "消えています";
     buttonLabel.textContent = state.is_on ? "消す" : "つける";
     pressCount.textContent = state.press_count;
+
+    // タブのアイコンとブラウザーのテーマ色も切り替える
+    favicon.href = state.is_on ? favicon.dataset.on : favicon.dataset.off;
+    themeColor.content = state.is_on ? "#3a3029" : "#15181c";
   } catch (error) {
     console.error("豆電球の状態を更新できませんでした。", error);
     errorMessage.hidden = false;
