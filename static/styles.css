@@ -1,10 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family:
-    "Yu Gothic",
-    "Hiragino Kaku Gothic ProN",
-    Meiryo,
-    sans-serif;
+  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,172 +10,392 @@
   box-sizing: border-box;
 }
 
-html {
-  min-width: 280px;
-}
-
 body {
   min-width: 280px;
   min-height: 100vh;
   margin: 0;
-
-  color: #e9eaeb;
-  background:
-    radial-gradient(
-      ellipse at 50% 42%,
-      #222832 0,
-      #171c24 52%,
-      #11151b 100%
-    );
-
-  transition:
-    color 600ms ease,
-    background 600ms ease;
+  background: #0d1014;
+  color: #dfe3e6;
+  transition: color 650ms ease;
 }
 
-/* 点灯時は写真の外側を含む画面全体が暖かくなる */
+/* 点灯時だけ画面全体をうっすら暖かくする */
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 55% 55%, #5a4634 0, #2f2720 50%, #1a1715 100%);
+  transition: opacity 650ms ease;
+}
+
 body.lights-on {
-  color: #fff6e9;
-  background:
-    radial-gradient(
-      ellipse at 50% 42%,
-      #75604b 0,
-      #493d33 50%,
-      #2c2826 100%
-    );
+  color: #fbf1e2;
 }
+
+body.lights-on::before {
+  opacity: 1;
+}
+
+/* ── レイアウト ───────────────────────── */
 
 .page {
-  width: min(100%, 920px);
+  width: min(100%, 900px);
   min-height: 100vh;
   margin: 0 auto;
-  padding:
-    clamp(28px, 5vw, 56px)
-    clamp(18px, 4vw, 40px)
-    28px;
-
+  padding: clamp(28px, 5vw, 52px) clamp(18px, 4vw, 38px) 26px;
   display: flex;
   flex-direction: column;
 }
 
 .heading {
-  margin-bottom: clamp(22px, 4vw, 36px);
+  margin-bottom: clamp(22px, 4vw, 34px);
 }
 
-.eyebrow {
-  margin: 0 0 13px;
-  color: #aab3be;
+.eyebrow,
+.readout__caption {
+  margin: 0 0 12px;
+  color: #8e979f;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.2em;
-
-  transition: color 600ms ease;
-}
-
-body.lights-on .eyebrow {
-  color: #e3c9a4;
+  letter-spacing: 0.19em;
+  transition: color 650ms ease;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(25px, 4.5vw, 42px);
+  font-size: clamp(25px, 4.5vw, 40px);
   font-weight: 600;
-  letter-spacing: 0.045em;
+  letter-spacing: 0.05em;
   line-height: 1.48;
 }
 
 .description {
-  margin: 14px 0 0;
-  color: #aeb5be;
+  margin: 13px 0 0;
+  color: #8e979f;
   font-size: 13px;
-  line-height: 1.7;
+  transition: color 650ms ease;
+}
 
-  transition: color 600ms ease;
+body.lights-on .eyebrow,
+body.lights-on .readout__caption {
+  color: #d9bd94;
 }
 
 body.lights-on .description {
-  color: #dfcfba;
+  color: #d8c6ae;
 }
 
 .switchboard {
   width: 100%;
 }
 
-/*
- * 室内の写真。
- * 2枚を同じ位置に重ね、点灯画像の透明度だけを変更する。
- */
+/* ── 部屋の隅 ─────────────────────────── */
+
 .scene {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  height: clamp(380px, 55vw, 520px);
   overflow: hidden;
   isolation: isolate;
-
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: #16191c;
-
-  box-shadow:
-    0 28px 70px rgba(0, 0, 0, 0.3),
-    0 3px 12px rgba(0, 0, 0, 0.16);
-
-  transition:
-    border-color 600ms ease,
-    box-shadow 600ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: #15181c;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
+  transition: border-color 650ms ease, box-shadow 650ms ease;
 }
 
 body.lights-on .scene {
-  border-color: rgba(255, 228, 183, 0.23);
-
+  border-color: rgba(255, 220, 170, 0.18);
   box-shadow:
-    0 30px 75px rgba(23, 15, 9, 0.3),
-    0 0 70px rgba(232, 161, 77, 0.12);
+    0 30px 75px rgba(20, 12, 6, 0.35),
+    0 0 80px rgba(232, 161, 77, 0.12);
 }
 
-.scene__image {
+.scene__left-wall,
+.scene__right-wall,
+.scene__floor,
+.scene__wall-light,
+.scene__floor-light,
+.scene__shadow,
+.scene__vignette {
   position: absolute;
+  pointer-events: none;
+}
+
+/* 正面の壁（左側） */
+.scene__left-wall {
+  inset: 0 39% 0 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 50%, rgba(0, 0, 0, 0.08)),
+    linear-gradient(180deg, #2a2d31, #1f2226 80%);
+}
+
+/* 奥へ折れる壁（右側）。少し暗くして角を作る */
+.scene__right-wall {
+  inset: 0 0 0 61%;
+  border-left: 2px solid rgba(0, 0, 0, 0.4);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.32), transparent 60%),
+    linear-gradient(180deg, #202327, #181b1f 80%);
+}
+
+/* 床。壁との境目を角で折り、部屋の隅だけを見せる */
+.scene__floor {
+  z-index: 1;
+  inset: 68% 0 0;
+  clip-path: polygon(0 16%, 61% 0, 100% 16%, 100% 100%, 0 100%);
+  background:
+    repeating-linear-gradient(92deg, transparent 0 135px, rgba(0, 0, 0, 0.09) 136px 137px),
+    linear-gradient(180deg, #2c2926, #18181a);
+}
+
+/* 壁への照り返し */
+.scene__wall-light {
+  z-index: 2;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-  object-position: center;
-}
-
-/* 点灯画像を上に重ねる。消灯中は透明にする */
-.scene__image--on {
   opacity: 0;
-  transition: opacity 700ms ease;
+  background:
+    radial-gradient(ellipse 30% 46% at 59% 58%, rgba(255, 205, 128, 0.55), rgba(244, 164, 86, 0.18) 50%, transparent 100%),
+    radial-gradient(ellipse 50% 72% at 72% 55%, rgba(233, 149, 75, 0.16), transparent 75%),
+    radial-gradient(ellipse 60% 80% at 40% 55%, rgba(233, 149, 75, 0.1), transparent 75%);
+  transition: opacity 650ms ease;
 }
 
-.scene.is-on .scene__image--on {
+/* 床に広がる光 */
+.scene__floor-light {
+  z-index: 2;
+  left: 20%;
+  right: 8%;
+  bottom: -8%;
+  height: 42%;
+  opacity: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255, 206, 132, 0.5), rgba(238, 150, 73, 0.15) 45%, transparent 70%);
+  filter: blur(10px);
+  transition: opacity 650ms ease;
+}
+
+body.lights-on .scene__wall-light,
+body.lights-on .scene__floor-light {
   opacity: 1;
 }
 
-/* 四隅を少し暗くして視線を電球へ寄せる */
+/* 接地影 */
+.scene__shadow {
+  z-index: 3;
+  left: 59%;
+  bottom: calc(12% - 8px);
+  width: 170px;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  filter: blur(9px);
+}
+
+/* 四隅を落として視線を電球へ集める */
 .scene__vignette {
+  z-index: 6;
+  inset: 0;
+  background: radial-gradient(ellipse at 58% 60%, transparent 30%, rgba(5, 7, 9, 0.25) 65%, rgba(5, 7, 9, 0.7) 100%);
+}
+
+/* ── 豆電球 ───────────────────────────── */
+
+.bulb {
+  position: absolute;
+  z-index: 4;
+  left: 59%;
+  bottom: 12%;
+  width: 120px;
+  height: 200px;
+  transform: translateX(-50%);
+}
+
+.bulb__halo {
+  position: absolute;
+  top: -105px;
+  left: -100px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 234, 175, 0.5) 0, rgba(255, 196, 107, 0.16) 32%, transparent 68%);
+  transition: opacity 650ms ease;
+}
+
+.bulb.is-on .bulb__halo {
+  opacity: 1;
+}
+
+/* ガラス球 */
+.bulb__glass {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 9px;
+  width: 102px;
+  height: 115px;
+  overflow: hidden;
+  border: 1px solid rgba(200, 212, 216, 0.45);
+  border-radius: 49% 49% 39% 39% / 48% 48% 44% 44%;
+  background:
+    linear-gradient(100deg,
+      rgba(190, 210, 220, 0.22) 0,
+      rgba(200, 218, 224, 0.04) 35%,
+      rgba(180, 200, 210, 0.06) 66%,
+      rgba(215, 226, 230, 0.26) 100%);
+  box-shadow:
+    inset 4px 2px 10px rgba(255, 255, 255, 0.14),
+    inset -10px -8px 18px rgba(0, 0, 0, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: background 650ms ease, box-shadow 650ms ease, border-color 650ms ease;
+}
+
+/* ガラス表面のハイライト */
+.bulb__shine {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 14px;
+  width: 20px;
+  height: 64px;
+  border-radius: 50%;
+  transform: rotate(14deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.02));
+  filter: blur(1.5px);
+}
+
+/* フィラメント（コイル＋支持線） */
+.bulb__filament {
   position: absolute;
   z-index: 1;
-  inset: 0;
-  pointer-events: none;
-
-  background:
-    radial-gradient(
-      ellipse at 56% 58%,
-      transparent 25%,
-      rgba(8, 10, 13, 0.08) 57%,
-      rgba(8, 10, 13, 0.38) 100%
-    );
+  top: 50px;
+  left: 37px;
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #6e5a46 0 2px, transparent 2px 4px);
+  transition: filter 500ms ease;
 }
+
+.bulb__filament::before,
+.bulb__filament::after {
+  position: absolute;
+  top: 3px;
+  width: 1.5px;
+  height: 64px;
+  content: "";
+  background: #6b6056;
+}
+
+.bulb__filament::before {
+  left: -1px;
+  transform: rotate(-6deg);
+  transform-origin: top;
+}
+
+.bulb__filament::after {
+  right: -1px;
+  transform: rotate(6deg);
+  transform-origin: top;
+}
+
+/* 口金 */
+.bulb__neck {
+  position: absolute;
+  z-index: 2;
+  top: 101px;
+  left: 33px;
+  width: 54px;
+  height: 16px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, #3e4241, #a9ada4 40%, #d0d2c8 50%, #4a4e4c);
+}
+
+.bulb__base {
+  position: absolute;
+  z-index: 2;
+  top: 114px;
+  left: 31px;
+  width: 58px;
+  height: 42px;
+  border-radius: 3px 3px 9px 9px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 5px, rgba(15, 17, 17, 0.5) 5px 7px, transparent 7px 8px),
+    linear-gradient(90deg, #3b3f3e 0%, #8a8e86 22%, #cfd0c4 42%, #7a7f79 70%, #343837 100%);
+  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.35);
+}
+
+.bulb__contact {
+  position: absolute;
+  z-index: 2;
+  top: 154px;
+  left: 47px;
+  width: 26px;
+  height: 9px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, #5c4a35, #c39b58 45%, #5a4733);
+}
+
+/* 小さなソケット台 */
+.bulb__socket {
+  position: absolute;
+  z-index: 1;
+  top: 158px;
+  left: 14px;
+  width: 92px;
+  height: 40px;
+  border-radius: 6px 6px 4px 4px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 30%),
+    linear-gradient(90deg, #1d1f21 0%, #3a3c3e 30%, #4a4c4e 45%, #2a2c2e 75%, #161819 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.07),
+    0 6px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* ── 点灯状態 ─────────────────────────── */
+
+.bulb.is-on .bulb__glass {
+  border-color: rgba(255, 232, 180, 0.85);
+  background: radial-gradient(ellipse at 50% 46%,
+    rgba(255, 253, 225, 0.98) 0,
+    rgba(255, 228, 160, 0.86) 30%,
+    rgba(255, 190, 105, 0.6) 65%,
+    rgba(255, 228, 185, 0.38) 100%);
+  box-shadow:
+    inset 4px 2px 12px rgba(255, 255, 255, 0.8),
+    inset -8px -8px 16px rgba(196, 113, 40, 0.2),
+    0 0 22px rgba(255, 214, 135, 0.9),
+    0 0 60px rgba(255, 190, 95, 0.5);
+}
+
+.bulb.is-on .bulb__filament {
+  background: repeating-linear-gradient(90deg, #fffbe0 0 2px, rgba(255, 240, 180, 0.4) 2px 4px);
+  filter: drop-shadow(0 0 6px #fff1b0) drop-shadow(0 0 2px #fff);
+}
+
+.bulb.is-on .bulb__neck,
+.bulb.is-on .bulb__base {
+  filter: brightness(1.18) sepia(0.25);
+}
+
+.bulb.is-on .bulb__socket {
+  filter: brightness(1.35) sepia(0.3);
+}
+
+/* ── 操作部分 ─────────────────────────── */
 
 .controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 25px 2px 0;
+  padding: 24px 2px 0;
 }
 
 .readout {
@@ -187,21 +403,11 @@ body.lights-on .scene {
 }
 
 .readout__caption {
-  margin: 0 0 6px;
-  color: #97a2ae;
+  margin-bottom: 6px;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.19em;
-
-  transition: color 600ms ease;
-}
-
-body.lights-on .readout__caption {
-  color: #d2b994;
 }
 
 .status {
-  min-height: 1.5em;
   margin: 0;
   font-size: clamp(17px, 2.5vw, 21px);
   font-weight: 700;
@@ -209,21 +415,19 @@ body.lights-on .readout__caption {
 }
 
 .counter {
-  margin: 9px 0 0;
-  color: #aeb5be;
+  margin: 8px 0 0;
+  color: #8e979f;
   font-size: 12px;
-
-  transition: color 600ms ease;
+  transition: color 650ms ease;
 }
 
 body.lights-on .counter {
-  color: #dfcfba;
+  color: #d8c6ae;
 }
 
 .counter span {
   display: inline-block;
   min-width: 2ch;
-  color: inherit;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
@@ -235,33 +439,24 @@ body.lights-on .counter {
   align-items: center;
   justify-content: center;
   gap: 12px;
-
-  min-width: 132px;
-  min-height: 52px;
+  min-width: 128px;
+  min-height: 50px;
   padding: 12px 22px;
-
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  color: inherit;
   font: inherit;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.08em;
-
   cursor: pointer;
-
-  transition:
-    transform 180ms ease,
-    background 180ms ease,
-    border-color 180ms ease,
-    opacity 180ms ease;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, opacity 180ms ease;
 }
 
 .toggle:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.19);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .toggle:active:not(:disabled) {
@@ -269,7 +464,7 @@ body.lights-on .counter {
 }
 
 .toggle:focus-visible {
-  outline: 3px solid #ffdc9b;
+  outline: 3px solid #ffd98f;
   outline-offset: 4px;
 }
 
@@ -279,43 +474,40 @@ body.lights-on .counter {
 }
 
 body.lights-on .toggle {
-  border-color: rgba(255, 233, 197, 0.58);
-  background: rgba(255, 230, 189, 0.13);
+  border-color: rgba(255, 230, 190, 0.55);
+  background: rgba(255, 225, 180, 0.12);
 }
 
 body.lights-on .toggle:hover:not(:disabled) {
-  background: rgba(255, 230, 189, 0.23);
+  background: rgba(255, 225, 180, 0.22);
 }
 
-/* 小さな電源マーク */
+/* 電源マーク */
 .toggle__icon {
   position: relative;
-  width: 17px;
-  height: 17px;
   flex: none;
-
+  width: 16px;
+  height: 16px;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
 }
 
 .toggle__icon::before {
-  content: "";
   position: absolute;
   top: -4px;
   left: 50%;
-
   width: 2px;
-  height: 10px;
-
+  height: 9px;
+  content: "";
   transform: translateX(-50%);
   border-radius: 2px;
   background: currentColor;
 }
 
 .error {
-  margin: 18px 2px 0;
-  color: #ffb9ad;
+  margin: 16px 2px 0;
+  color: #ffb4a6;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -327,38 +519,34 @@ body.lights-on .toggle:hover:not(:disabled) {
 .footer {
   margin-top: auto;
   padding-top: 36px;
-  color: #97a2ae;
+  color: #6f777e;
   font-size: 11px;
   letter-spacing: 0.04em;
-
-  transition: color 600ms ease;
+  transition: color 650ms ease;
 }
 
 body.lights-on .footer {
-  color: #cebda7;
+  color: #bfae97;
 }
+
+/* ── スマホ ───────────────────────────── */
 
 @media (max-width: 540px) {
   .scene {
-    /* スマホでは少し縦長にして、電球を見やすくする */
-    aspect-ratio: 4 / 5;
+    height: 400px;
   }
 
-  .scene__image {
-    /*
-     * 画像を中央で切り抜く。
-     * 電球を左右どちらかに寄せた画像なら、
-     * object-position を画像に合わせて調整する。
-     */
-    object-position: center;
+  .bulb {
+    transform: translateX(-50%) scale(0.85);
+    transform-origin: bottom center;
   }
 
   .controls {
-    padding-top: 21px;
+    padding-top: 20px;
   }
 
   .toggle {
-    min-width: 112px;
+    min-width: 110px;
     padding-inline: 16px;
   }
 }
@@ -367,7 +555,6 @@ body.lights-on .footer {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }
