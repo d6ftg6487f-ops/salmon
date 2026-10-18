@@ -8,7 +8,7 @@
         id="theme-color"
         content="{% if state.is_on %}#3a3029{% else %}#15181c{% endif %}"
     >
-    <title>豆電球をつけたり消したりするだけ</title>
+    <title>豆電球</title>
 
     <!-- タブのアイコン。点灯・消灯のURLを data 属性に持たせ、JSから切り替える -->
     <link
@@ -59,16 +59,19 @@
     <main class="page">
         <header class="heading">
             <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
-            <h1>豆電球を つけたり消したりするだけ</h1>
+            <h1>豆電球</h1>
         </header>
 
         <section class="switchboard" aria-label="豆電球の操作">
             <div class="controls">
                 <div class="readout">
                     <p class="readout__caption">LIGHT STATUS</p>
-                    <p class="status" id="status" aria-live="polite">
-                        {% if state.is_on %}ついています{% else %}消えています{% endif %}
-                    </p>
+                    <p
+                        class="status"
+                        id="status"
+                        aria-live="polite"
+                        aria-label="{% if state.is_on %}ついています{% else %}消えています{% endif %}"
+                    >{% if state.is_on %}ON{% else %}OFF{% endif %}</p>
                     <p class="counter">
                         押した回数 <span id="count">{{ state.press_count }}</span> 回
                     </p>
