@@ -25,7 +25,11 @@ toggleButton.addEventListener("click", async () => {
     bulb.classList.toggle("is-on", state.is_on);
     bulb.setAttribute("aria-label", state.is_on ? "点灯中" : "消灯中");
     toggleButton.setAttribute("aria-pressed", String(state.is_on));
-    statusText.textContent = state.is_on ? "ついています" : "消えています";
+
+    // ステータスは ON / OFF 表記。読み上げ用には文章を残す
+    statusText.textContent = state.is_on ? "ON" : "OFF";
+    statusText.setAttribute("aria-label", state.is_on ? "ついています" : "消えています");
+
     buttonLabel.textContent = state.is_on ? "消す" : "つける";
     pressCount.textContent = state.press_count;
 
