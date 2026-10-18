@@ -1,16 +1,8 @@
 :root {
-  color-scheme: light;
   font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-  color: #30332e;
-  background: #f4f1e9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ink: #30332e;
-  --muted: #85877e;
-  --line: #dedbd1;
-  --green: #668451;
-  --yellow: #ffdc72;
 }
 
 * {
@@ -18,221 +10,423 @@
 }
 
 body {
+  --text: #e7e8e8;
+  --muted: #a0a6ae;
+  --wall-left: #20242a;
+  --wall-right: #171c23;
+  --floor: #171a1e;
+  --light-opacity: 0;
+  --glass-glow: 0;
+
   min-width: 280px;
   min-height: 100vh;
   margin: 0;
-  display: grid;
-  place-items: center;
-  padding: 32px 20px;
-  background:
-    radial-gradient(ellipse at 50% 42%, #fffdf7 0, #f4f1e9 62%),
-    #f4f1e9;
+  color: var(--text);
+  background: #101319;
+  transition: background 650ms ease, color 650ms ease;
+}
+
+body.lights-on {
+  --text: #f6efe0;
+  --muted: #c6b9a5;
+  --wall-left: #5c5043;
+  --wall-right: #3e3934;
+  --floor: #342d28;
+  --light-opacity: 1;
+  --glass-glow: 1;
+
+  background: #332c28;
 }
 
 .page {
-  width: min(100%, 560px);
-  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(24px, 5vw, 48px) 20px 24px;
 }
 
 .heading {
-  margin-bottom: 34px;
+  width: min(100%, 760px);
+  margin-bottom: 25px;
 }
 
 .eyebrow {
-  margin: 0 0 14px;
-  color: var(--green);
+  margin: 0 0 10px;
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(26px, 6vw, 38px);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.55;
+  font-size: clamp(23px, 4vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
 }
 
 .switchboard {
-  display: flex;
-  min-height: 430px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 36px 20px 30px;
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  background: rgba(255, 254, 250, 0.8);
-  box-shadow: 0 18px 50px rgba(63, 60, 47, 0.07);
+  width: min(100%, 760px);
 }
 
-.bulb {
+.scene {
   position: relative;
-  width: 154px;
-  height: 194px;
-  margin: 0 auto 14px;
-  filter: drop-shadow(0 8px 12px rgba(50, 49, 39, 0.1));
-  transition: filter 350ms ease;
+  height: clamp(350px, 56vw, 490px);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: var(--wall-right);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.27);
+}
+
+/* 二面の壁。右側を少し暗くして「部屋の隅」を作る */
+.scene__left-wall,
+.scene__right-wall,
+.scene__floor,
+.scene__light,
+.scene__shadow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.scene__left-wall {
+  inset: 0 40% 0 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.25), transparent 70%),
+    var(--wall-left);
+}
+
+.scene__right-wall {
+  inset: 0 0 0 60%;
+  border-left: 2px solid rgba(0, 0, 0, 0.27);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.17), transparent 55%),
+    var(--wall-right);
+}
+
+.scene__floor {
+  z-index: 1;
+  inset: 65% 0 0;
+  clip-path: polygon(0 18%, 60% 0, 100% 18%, 100% 100%, 0 100%);
+  background:
+    repeating-linear-gradient(
+      92deg,
+      transparent 0 110px,
+      rgba(0, 0, 0, 0.08) 111px 112px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 60%),
+    var(--floor);
+}
+
+.scene__light {
+  z-index: 2;
+  inset: 0;
+  opacity: var(--light-opacity);
+  background:
+    radial-gradient(
+      ellipse 35% 48% at 60% 61%,
+      rgba(255, 209, 122, 0.52),
+      rgba(249, 173, 85, 0.18) 48%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 52% 19% at 60% 79%,
+      rgba(255, 189, 98, 0.45),
+      transparent 100%
+    );
+  transition: opacity 550ms ease;
+}
+
+.scene__shadow {
+  z-index: 3;
+  left: 60%;
+  bottom: 14%;
+  width: 165px;
+  height: 28px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.52);
+  filter: blur(12px);
+}
+
+/* 電球全体。床との接点を基準に固定する */
+.bulb {
+  position: absolute;
+  z-index: 4;
+  left: 60%;
+  bottom: 15%;
+  width: 112px;
+  height: 165px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.32));
+}
+
+.bulb__halo {
+  position: absolute;
+  z-index: -1;
+  top: -100px;
+  left: -100px;
+  width: 312px;
+  height: 312px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 230, 161, 0.55),
+    rgba(255, 202, 112, 0.19) 32%,
+    transparent 69%
+  );
+  opacity: var(--glass-glow);
+  transition: opacity 550ms ease;
 }
 
 .bulb__glass {
   position: absolute;
+  z-index: 3;
   top: 0;
-  left: 17px;
-  width: 120px;
-  height: 132px;
-  border: 3px solid #686b61;
-  border-radius: 54% 54% 45% 45% / 48% 48% 43% 43%;
-  background: linear-gradient(145deg, #fffef9 5%, #e9e7dc 100%);
-  transition: background 350ms ease, box-shadow 350ms ease, border-color 350ms ease;
-}
-
-.bulb__glass::before,
-.bulb__glass::after {
-  position: absolute;
-  content: "";
-  left: 50%;
-  transform: translateX(-50%);
+  left: 8px;
+  width: 96px;
+  height: 107px;
+  overflow: hidden;
+  border: 1px solid rgba(210, 220, 225, 0.62);
+  border-radius: 49% 49% 39% 39% / 49% 49% 45% 45%;
+  background:
+    radial-gradient(
+      ellipse at 34% 27%,
+      rgba(255, 255, 255, 0.29),
+      transparent 43%
+    ),
+    linear-gradient(
+      100deg,
+      rgba(210, 226, 234, 0.24),
+      rgba(183, 207, 219, 0.035) 35%,
+      rgba(211, 225, 230, 0.13) 72%,
+      rgba(207, 223, 229, 0.32)
+    );
+  box-shadow:
+    inset 5px 2px 9px rgba(255, 255, 255, 0.19),
+    inset -8px -5px 14px rgba(9, 15, 20, 0.3),
+    0 3px 9px rgba(0, 0, 0, 0.2);
+  transition: background 550ms ease, box-shadow 550ms ease;
 }
 
 .bulb__glass::before {
-  top: 36px;
-  width: 2px;
-  height: 62px;
-  background: #8b8876;
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 13px;
+  width: 21px;
+  height: 69px;
+  transform: rotate(13deg);
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.23),
+    rgba(255, 255, 255, 0.025)
+  );
+  filter: blur(2px);
 }
 
-.bulb__glass::after {
-  top: 91px;
-  width: 46px;
-  height: 2px;
-  background: #8b8876;
-  box-shadow: 0 -9px 0 #8b8876;
+.bulb__filament {
+  position: absolute;
+  z-index: 4;
+  top: 48px;
+  left: 42px;
+  width: 28px;
+  height: 26px;
+  border-bottom: 3px solid #8c6945;
+  border-radius: 0 0 50% 50%;
+  filter: drop-shadow(0 0 0 transparent);
+  transition: border-color 450ms ease, filter 450ms ease;
+}
+
+.bulb__filament::before,
+.bulb__filament::after {
+  content: "";
+  position: absolute;
+  bottom: -22px;
+  width: 2px;
+  height: 34px;
+  background: #806e5c;
+}
+
+.bulb__filament::before {
+  left: 0;
+  transform: rotate(-8deg);
+}
+
+.bulb__filament::after {
+  right: 0;
+  transform: rotate(8deg);
 }
 
 .bulb__neck {
   position: absolute;
-  z-index: 1;
-  top: 112px;
-  left: 49px;
-  width: 56px;
-  height: 29px;
-  border-right: 3px solid #686b61;
-  border-left: 3px solid #686b61;
-  background: #e5e2d7;
+  z-index: 2;
+  top: 96px;
+  left: 30px;
+  width: 52px;
+  height: 20px;
+  background: linear-gradient(90deg, #4c5151, #aeb2a9 42%, #535755);
 }
 
 .bulb__base {
   position: absolute;
-  top: 136px;
-  left: 44px;
-  width: 66px;
-  height: 48px;
-  border: 3px solid #686b61;
-  border-radius: 5px 5px 15px 15px;
-  background: repeating-linear-gradient(
-    to bottom,
-    #b9b7ac 0 5px,
-    #77796f 5px 8px
-  );
+  z-index: 2;
+  top: 108px;
+  left: 27px;
+  width: 58px;
+  height: 49px;
+  border-radius: 4px 4px 10px 10px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 5px,
+      rgba(25, 27, 27, 0.46) 6px 8px
+    ),
+    linear-gradient(
+      90deg,
+      #464b49 0%,
+      #91958d 20%,
+      #c4c5b8 43%,
+      #797e79 70%,
+      #3e4342 100%
+    );
+  box-shadow: 2px 5px 8px rgba(0, 0, 0, 0.28);
 }
 
-.bulb.is-on {
-  filter: drop-shadow(0 0 30px rgba(255, 209, 82, 0.85));
+.bulb__contact {
+  position: absolute;
+  z-index: 1;
+  bottom: 1px;
+  left: 43px;
+  width: 26px;
+  height: 13px;
+  border-radius: 0 0 9px 9px;
+  background: linear-gradient(90deg, #66523a, #bd9555, #655039);
 }
 
-.bulb.is-on .bulb__glass {
-  border-color: #c2a341;
-  background: radial-gradient(circle at 42% 36%, #fffde1 0, #ffe985 49%, #f2bd39 100%);
-  box-shadow: inset 0 0 24px rgba(255, 255, 221, 0.9);
+body.lights-on .bulb__glass {
+  border-color: rgba(255, 233, 176, 0.9);
+  background:
+    radial-gradient(
+      ellipse at 50% 53%,
+      rgba(255, 252, 216, 0.97) 0,
+      rgba(255, 227, 155, 0.88) 34%,
+      rgba(255, 192, 106, 0.62) 65%,
+      rgba(255, 235, 191, 0.35) 100%
+    );
+  box-shadow:
+    inset 5px 2px 12px rgba(255, 255, 255, 0.83),
+    inset -8px -8px 16px rgba(196, 113, 40, 0.18),
+    0 0 22px rgba(255, 212, 131, 0.95),
+    0 0 65px rgba(255, 192, 96, 0.54);
 }
 
-.bulb.is-on .bulb__glass::before,
-.bulb.is-on .bulb__glass::after {
-  background: #a28225;
+body.lights-on .bulb__filament {
+  border-color: #fff9d7;
+  filter: drop-shadow(0 0 8px #fff0af);
 }
 
-.bulb.is-on .bulb__glass::after {
-  box-shadow: 0 -9px 0 #a28225;
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 2px 0;
+}
+
+.status-group {
+  min-width: 0;
 }
 
 .status {
-  min-height: 1.7em;
-  margin: 0 0 20px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.counter {
+  margin: 8px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 12px;
+}
+
+.counter span {
+  font-variant-numeric: tabular-nums;
 }
 
 .toggle {
-  display: inline-flex;
-  min-width: 172px;
-  min-height: 54px;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 24px;
-  border: 0;
+  flex: none;
+  min-width: 116px;
+  min-height: 48px;
+  padding: 10px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 999px;
-  background: var(--green);
-  color: white;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
   font: inherit;
-  font-size: 17px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 160ms ease, transform 160ms ease, opacity 160ms ease;
+  transition: background 180ms ease, transform 180ms ease, opacity 180ms ease;
 }
 
 .toggle:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: #536d40;
-}
-
-.toggle:active:not(:disabled) {
-  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.23);
 }
 
 .toggle:focus-visible {
-  outline: 3px solid #30332e;
+  outline: 3px solid #ffd987;
   outline-offset: 4px;
 }
 
 .toggle:disabled {
   cursor: wait;
-  opacity: 0.65;
-}
-
-.toggle__indicator {
-  width: 10px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-}
-
-.counter {
-  margin: 21px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.counter span {
-  display: inline-block;
-  min-width: 2ch;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  opacity: 0.55;
 }
 
 .error {
-  margin: 12px 0 0;
-  color: #a43c32;
+  margin: 14px 0 0;
+  color: #ffb7a9;
   font-size: 13px;
 }
 
+.error[hidden] {
+  display: none;
+}
+
 footer {
+  width: min(100%, 760px);
   margin-top: 24px;
   color: var(--muted);
   font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .scene {
+    height: 390px;
+  }
+
+  .bulb,
+  .scene__shadow {
+    left: 57%;
+  }
+
+  .scene__light {
+    background:
+      radial-gradient(
+        ellipse 49% 43% at 57% 61%,
+        rgba(255, 209, 122, 0.52),
+        transparent 100%
+      ),
+      radial-gradient(
+        ellipse 65% 19% at 57% 79%,
+        rgba(255, 189, 98, 0.45),
+        transparent 100%
+      );
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
