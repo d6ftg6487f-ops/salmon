@@ -378,13 +378,14 @@ body.lights-on .scene__floor-light {
   margin-bottom: 10px;
 }
 
+/* タイトルは「豆電球」だけなので、少し大きめにする */
 h1 {
   margin: 0;
   color: #dfe3e6;
-  font-size: clamp(15px, 1.6vw, 18px);
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  opacity: 0.75;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  line-height: 1.3;
   transition: color 650ms ease;
 }
 
@@ -420,12 +421,20 @@ body.lights-on h1 {
   margin-bottom: 6px;
 }
 
+/* ON / OFF 表示。消灯時は沈んだ色、点灯時は暖色に光る */
 .status {
   margin: 0;
-  font-size: clamp(17px, 2.5vw, 21px);
+  font-size: clamp(26px, 3.6vw, 36px);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.18em;
+  color: #6f777e;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  transition: color 650ms ease, text-shadow 650ms ease;
+}
+
+body.lights-on .status {
+  color: #ffe2a6;
+  text-shadow: 0 0 14px rgba(255, 200, 110, 0.7);
 }
 
 .counter {
@@ -524,7 +533,7 @@ body.lights-on .toggle:hover:not(:disabled) {
 .error {
   position: absolute;
   left: clamp(20px, 5vw, 56px);
-  bottom: calc(clamp(20px, 5vh, 48px) + 76px);
+  bottom: calc(clamp(20px, 5vh, 48px) + 88px);
   margin: 0;
   color: #ffb4a6;
   font-size: 13px;
@@ -552,7 +561,7 @@ body.lights-on .toggle:hover:not(:disabled) {
   }
 
   h1 {
-    font-size: 14px;
+    font-size: 22px;
   }
 
   .toggle {
