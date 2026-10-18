@@ -11,107 +11,27 @@
 }
 
 body {
-  min-width: 280px;
   min-height: 100vh;
+  min-width: 280px;
   margin: 0;
-  background: #0d1014;
+  background: #15181c;
   color: #dfe3e6;
   transition: color 650ms ease;
-}
-
-/* 点灯時だけ画面全体をうっすら暖かくする */
-body::before {
-  position: fixed;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(ellipse at 55% 55%, #5a4634 0, #2f2720 50%, #1a1715 100%);
-  transition: opacity 650ms ease;
 }
 
 body.lights-on {
   color: #fbf1e2;
 }
 
-body.lights-on::before {
-  opacity: 1;
-}
-
-/* ── レイアウト ───────────────────────── */
-
-.page {
-  width: min(100%, 900px);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: clamp(28px, 5vw, 52px) clamp(18px, 4vw, 38px) 26px;
-  display: flex;
-  flex-direction: column;
-}
-
-.heading {
-  margin-bottom: clamp(22px, 4vw, 34px);
-}
-
-.eyebrow,
-.readout__caption {
-  margin: 0 0 12px;
-  color: #8e979f;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.19em;
-  transition: color 650ms ease;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(25px, 4.5vw, 40px);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  line-height: 1.48;
-}
-
-.description {
-  margin: 13px 0 0;
-  color: #8e979f;
-  font-size: 13px;
-  transition: color 650ms ease;
-}
-
-body.lights-on .eyebrow,
-body.lights-on .readout__caption {
-  color: #d9bd94;
-}
-
-body.lights-on .description {
-  color: #d8c6ae;
-}
-
-.switchboard {
-  width: 100%;
-}
-
-/* ── 部屋の隅 ─────────────────────────── */
+/* ── 部屋（画面全体） ─────────────────── */
 
 .scene {
-  position: relative;
-  width: 100%;
-  height: clamp(380px, 55vw, 520px);
+  position: fixed;
+  z-index: 0;
+  inset: 0;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 12px;
   background: #15181c;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
-  transition: border-color 650ms ease, box-shadow 650ms ease;
-}
-
-body.lights-on .scene {
-  border-color: rgba(255, 220, 170, 0.18);
-  box-shadow:
-    0 30px 75px rgba(20, 12, 6, 0.35),
-    0 0 80px rgba(232, 161, 77, 0.12);
 }
 
 .scene__left-wall,
@@ -125,56 +45,62 @@ body.lights-on .scene {
   pointer-events: none;
 }
 
-/* 正面の壁（左側） */
+/* 正面の壁（左側）。視点の正面に広がる */
 .scene__left-wall {
-  inset: 0 39% 0 0;
+  inset: 0 22% 0 0;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 50%, rgba(0, 0, 0, 0.08)),
     linear-gradient(180deg, #2a2d31, #1f2226 80%);
+  translate: calc(var(--px, 0) * -6px) calc(var(--py, 0) * -3px);
 }
 
 /* 奥へ折れる壁（右側）。少し暗くして角を作る */
 .scene__right-wall {
-  inset: 0 0 0 61%;
+  inset: 0 0 0 78%;
   border-left: 2px solid rgba(0, 0, 0, 0.4);
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.32), transparent 60%),
     linear-gradient(180deg, #202327, #181b1f 80%);
+  translate: calc(var(--px, 0) * -6px) calc(var(--py, 0) * -3px);
 }
 
-/* 床。壁との境目を角で折り、部屋の隅だけを見せる */
+/* 床。壁との境目を斜めに折り、低い視点を作る */
 .scene__floor {
   z-index: 1;
-  inset: 68% 0 0;
-  clip-path: polygon(0 16%, 61% 0, 100% 16%, 100% 100%, 0 100%);
+  inset: 74% 0 0;
+  clip-path: polygon(0 4%, 78% 0, 100% 10%, 100% 100%, 0 100%);
   background:
     repeating-linear-gradient(92deg, transparent 0 135px, rgba(0, 0, 0, 0.09) 136px 137px),
     linear-gradient(180deg, #2c2926, #18181a);
 }
 
-/* 壁への照り返し */
+/* 壁への照り返し（横長の楕円で広がる） */
 .scene__wall-light {
   z-index: 2;
   inset: 0;
   opacity: 0;
   background:
-    radial-gradient(ellipse 30% 46% at 59% 58%, rgba(255, 205, 128, 0.55), rgba(244, 164, 86, 0.18) 50%, transparent 100%),
-    radial-gradient(ellipse 50% 72% at 72% 55%, rgba(233, 149, 75, 0.16), transparent 75%),
-    radial-gradient(ellipse 60% 80% at 40% 55%, rgba(233, 149, 75, 0.1), transparent 75%);
+    radial-gradient(ellipse 30% 46% at 40% 62%, rgba(255, 205, 128, 0.55), rgba(244, 164, 86, 0.18) 50%, transparent 100%),
+    radial-gradient(ellipse 45% 60% at 52% 60%, rgba(233, 149, 75, 0.14), transparent 75%);
   transition: opacity 650ms ease;
 }
 
-/* 床に広がる光 */
+/* 床に広がる光（床の面に沿ってつぶれた楕円） */
 .scene__floor-light {
   z-index: 2;
-  left: 20%;
-  right: 8%;
-  bottom: -8%;
-  height: 42%;
+  left: 10%;
+  right: 30%;
+  bottom: 8%;
+  height: 22%;
   opacity: 0;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 40%, rgba(255, 206, 132, 0.5), rgba(238, 150, 73, 0.15) 45%, transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 30%,
+    rgba(255, 200, 130, 0.42),
+    rgba(240, 160, 80, 0.12) 50%,
+    transparent 75%
+  );
+  filter: blur(8px);
   transition: opacity 650ms ease;
 }
 
@@ -186,21 +112,55 @@ body.lights-on .scene__floor-light {
 /* 接地影 */
 .scene__shadow {
   z-index: 3;
-  left: 59%;
-  bottom: calc(12% - 8px);
-  width: 170px;
+  left: 40%;
+  bottom: calc(22% - 6px);
+  width: 120px;
   height: 22px;
   transform: translateX(-50%);
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.65);
   filter: blur(9px);
+  translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -6px);
 }
 
 /* 四隅を落として視線を電球へ集める */
 .scene__vignette {
   z-index: 6;
   inset: 0;
-  background: radial-gradient(ellipse at 58% 60%, transparent 30%, rgba(5, 7, 9, 0.25) 65%, rgba(5, 7, 9, 0.7) 100%);
+  background: radial-gradient(
+    ellipse at 40% 62%,
+    transparent 28%,
+    rgba(5, 7, 9, 0.28) 62%,
+    rgba(5, 7, 9, 0.75) 100%
+  );
+}
+
+/* フィルムグレイン。グラデーションの段差を消す */
+.scene::after {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ── 点灯時の演出 ─────────────────────── */
+
+@keyframes ignite {
+  0%   { opacity: 0; }
+  6%   { opacity: 0.55; }
+  10%  { opacity: 0.12; }
+  18%  { opacity: 0.8; }
+  24%  { opacity: 0.45; }
+  100% { opacity: 1; }
+}
+
+body.lights-on .scene__wall-light,
+body.lights-on .scene__floor-light {
+  animation: ignite 900ms ease-out both;
 }
 
 /* ── 豆電球 ───────────────────────────── */
@@ -208,27 +168,36 @@ body.lights-on .scene__floor-light {
 .bulb {
   position: absolute;
   z-index: 4;
-  left: 59%;
-  bottom: 12%;
+  left: 40%;
+  bottom: 22%;
   width: 120px;
   height: 200px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(0.7);
+  transform-origin: bottom center;
+  translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -6px);
 }
 
 .bulb__halo {
   position: absolute;
-  top: -105px;
-  left: -100px;
-  width: 320px;
-  height: 320px;
+  top: -40px;
+  left: -40px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
   opacity: 0;
-  background: radial-gradient(circle, rgba(255, 234, 175, 0.5) 0, rgba(255, 196, 107, 0.16) 32%, transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 240, 200, 0.55) 0,
+    rgba(255, 200, 120, 0.18) 25%,
+    rgba(255, 180, 100, 0.06) 45%,
+    transparent 70%
+  );
   transition: opacity 650ms ease;
 }
 
 .bulb.is-on .bulb__halo {
   opacity: 1;
+  animation: ignite 900ms ease-out both;
 }
 
 /* ガラス球 */
@@ -242,12 +211,13 @@ body.lights-on .scene__floor-light {
   overflow: hidden;
   border: 1px solid rgba(200, 212, 216, 0.45);
   border-radius: 49% 49% 39% 39% / 48% 48% 44% 44%;
-  background:
-    linear-gradient(100deg,
-      rgba(190, 210, 220, 0.22) 0,
-      rgba(200, 218, 224, 0.04) 35%,
-      rgba(180, 200, 210, 0.06) 66%,
-      rgba(215, 226, 230, 0.26) 100%);
+  background: linear-gradient(
+    100deg,
+    rgba(190, 210, 220, 0.22) 0,
+    rgba(200, 218, 224, 0.04) 35%,
+    rgba(180, 200, 210, 0.06) 66%,
+    rgba(215, 226, 230, 0.26) 100%
+  );
   box-shadow:
     inset 4px 2px 10px rgba(255, 255, 255, 0.14),
     inset -10px -8px 18px rgba(0, 0, 0, 0.4),
@@ -269,7 +239,7 @@ body.lights-on .scene__floor-light {
   filter: blur(1.5px);
 }
 
-/* フィラメント（コイル＋支持線） */
+/* フィラメント（コイル＋支持線）。色を変えて発光を表現する */
 .bulb__filament {
   position: absolute;
   z-index: 1;
@@ -278,8 +248,9 @@ body.lights-on .scene__floor-light {
   width: 28px;
   height: 6px;
   border-radius: 3px;
-  background: repeating-linear-gradient(90deg, #6e5a46 0 2px, transparent 2px 4px);
-  transition: filter 500ms ease;
+  color: #6e5a46;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px);
+  transition: color 1.6s ease, filter 1.6s ease;
 }
 
 .bulb__filament::before,
@@ -341,7 +312,7 @@ body.lights-on .scene__floor-light {
   background: linear-gradient(90deg, #5c4a35, #c39b58 45%, #5a4733);
 }
 
-/* 小さなソケット台 */
+/* ソケット台。電球が「置かれている」ように見せる */
 .bulb__socket {
   position: absolute;
   z-index: 1;
@@ -358,15 +329,16 @@ body.lights-on .scene__floor-light {
     0 6px 10px rgba(0, 0, 0, 0.45);
 }
 
-/* ── 点灯状態 ─────────────────────────── */
-
+/* 点灯状態。フィラメントは素早く光り、消すときはゆっくり冷める */
 .bulb.is-on .bulb__glass {
   border-color: rgba(255, 232, 180, 0.85);
-  background: radial-gradient(ellipse at 50% 46%,
+  background: radial-gradient(
+    ellipse at 50% 46%,
     rgba(255, 253, 225, 0.98) 0,
     rgba(255, 228, 160, 0.86) 30%,
     rgba(255, 190, 105, 0.6) 65%,
-    rgba(255, 228, 185, 0.38) 100%);
+    rgba(255, 228, 185, 0.38) 100%
+  );
   box-shadow:
     inset 4px 2px 12px rgba(255, 255, 255, 0.8),
     inset -8px -8px 16px rgba(196, 113, 40, 0.2),
@@ -375,8 +347,9 @@ body.lights-on .scene__floor-light {
 }
 
 .bulb.is-on .bulb__filament {
-  background: repeating-linear-gradient(90deg, #fffbe0 0 2px, rgba(255, 240, 180, 0.4) 2px 4px);
+  color: #fffbe0;
   filter: drop-shadow(0 0 6px #fff1b0) drop-shadow(0 0 2px #fff);
+  transition: color 120ms ease, filter 120ms ease;
 }
 
 .bulb.is-on .bulb__neck,
@@ -388,23 +361,76 @@ body.lights-on .scene__floor-light {
   filter: brightness(1.35) sepia(0.3);
 }
 
-/* ── 操作部分 ─────────────────────────── */
+/* ── 文字と操作（部屋の上に重なる） ───── */
+
+.page {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  pointer-events: none;
+}
+
+.heading {
+  position: absolute;
+  top: clamp(24px, 5vh, 48px);
+  left: clamp(20px, 5vw, 56px);
+}
+
+.eyebrow,
+.readout__caption {
+  margin: 0;
+  color: #8e979f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  transition: color 650ms ease;
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+}
+
+h1 {
+  margin: 0;
+  color: #dfe3e6;
+  font-size: clamp(15px, 1.6vw, 18px);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  opacity: 0.75;
+  transition: color 650ms ease;
+}
+
+body.lights-on .eyebrow,
+body.lights-on .readout__caption {
+  color: #d9bd94;
+}
+
+body.lights-on h1 {
+  color: #fbf1e2;
+}
+
+.switchboard {
+  position: static;
+}
 
 .controls {
+  position: absolute;
+  left: clamp(20px, 5vw, 56px);
+  right: clamp(20px, 5vw, 56px);
+  bottom: clamp(20px, 5vh, 48px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 24px 2px 0;
 }
 
 .readout {
   min-width: 0;
+  pointer-events: none;
 }
 
 .readout__caption {
   margin-bottom: 6px;
-  font-size: 10px;
 }
 
 .status {
@@ -412,6 +438,7 @@ body.lights-on .scene__floor-light {
   font-size: clamp(17px, 2.5vw, 21px);
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
 }
 
 .counter {
@@ -434,6 +461,7 @@ body.lights-on .counter {
 }
 
 .toggle {
+  pointer-events: auto;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -444,7 +472,9 @@ body.lights-on .counter {
   padding: 12px 22px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(20, 22, 26, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: inherit;
   font: inherit;
   font-size: 15px;
@@ -475,11 +505,11 @@ body.lights-on .counter {
 
 body.lights-on .toggle {
   border-color: rgba(255, 230, 190, 0.55);
-  background: rgba(255, 225, 180, 0.12);
+  background: rgba(255, 225, 180, 0.14);
 }
 
 body.lights-on .toggle:hover:not(:disabled) {
-  background: rgba(255, 225, 180, 0.22);
+  background: rgba(255, 225, 180, 0.24);
 }
 
 /* 電源マーク */
@@ -506,43 +536,37 @@ body.lights-on .toggle:hover:not(:disabled) {
 }
 
 .error {
-  margin: 16px 2px 0;
+  position: absolute;
+  left: clamp(20px, 5vw, 56px);
+  bottom: calc(clamp(20px, 5vh, 48px) + 76px);
+  margin: 0;
   color: #ffb4a6;
   font-size: 13px;
   line-height: 1.6;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 
 .error[hidden] {
   display: none;
 }
 
-.footer {
-  margin-top: auto;
-  padding-top: 36px;
-  color: #6f777e;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  transition: color 650ms ease;
-}
-
-body.lights-on .footer {
-  color: #bfae97;
-}
-
 /* ── スマホ ───────────────────────────── */
 
 @media (max-width: 540px) {
-  .scene {
-    height: 400px;
-  }
-
   .bulb {
-    transform: translateX(-50%) scale(0.85);
-    transform-origin: bottom center;
+    transform: translateX(-50%) scale(0.56);
   }
 
-  .controls {
-    padding-top: 20px;
+  .scene__shadow {
+    width: 90px;
+  }
+
+  .heading {
+    top: 22px;
+  }
+
+  h1 {
+    font-size: 14px;
   }
 
   .toggle {
@@ -551,10 +575,13 @@ body.lights-on .footer {
   }
 }
 
+/* ── 動きの配慮 ───────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    animation: none !important;
     transition-duration: 0.01ms !important;
   }
 }
