@@ -3,50 +3,52 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#11151a">
+    <meta name="theme-color" content="#15181c">
     <title>豆電球をつけたり消したりするだけ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body class="{% if state.is_on %}lights-on{% endif %}">
+
+    <!-- 画面全体に広がる部屋の隅 -->
+    <div class="scene">
+        <div class="scene__left-wall" aria-hidden="true"></div>
+        <div class="scene__right-wall" aria-hidden="true"></div>
+        <div class="scene__floor" aria-hidden="true"></div>
+
+        <!-- 点灯時に壁と床へ広がる光 -->
+        <div class="scene__wall-light" aria-hidden="true"></div>
+        <div class="scene__floor-light" aria-hidden="true"></div>
+        <div class="scene__shadow" aria-hidden="true"></div>
+
+        <div
+            class="bulb{% if state.is_on %} is-on{% endif %}"
+            id="bulb"
+            role="img"
+            aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
+        >
+            <span class="bulb__halo" aria-hidden="true"></span>
+            <span class="bulb__glass" aria-hidden="true">
+                <span class="bulb__filament"></span>
+                <span class="bulb__shine"></span>
+            </span>
+            <span class="bulb__neck" aria-hidden="true"></span>
+            <span class="bulb__base" aria-hidden="true"></span>
+            <span class="bulb__contact" aria-hidden="true"></span>
+            <span class="bulb__socket" aria-hidden="true"></span>
+        </div>
+
+        <div class="scene__vignette" aria-hidden="true"></div>
+    </div>
+
+    <!-- 文字・操作部分（部屋の上に重なる） -->
     <main class="page">
         <header class="heading">
             <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
-            <h1>豆電球を<br>つけたり消したりするだけ</h1>
-            <p class="description">部屋の隅に、ひとつだけ。</p>
+            <h1>豆電球を つけたり消したりするだけ</h1>
         </header>
 
         <section class="switchboard" aria-label="豆電球の操作">
-            <div class="scene">
-                <div class="scene__left-wall" aria-hidden="true"></div>
-                <div class="scene__right-wall" aria-hidden="true"></div>
-                <div class="scene__floor" aria-hidden="true"></div>
-
-                <!-- 点灯時に壁と床へ広がる光 -->
-                <div class="scene__wall-light" aria-hidden="true"></div>
-                <div class="scene__floor-light" aria-hidden="true"></div>
-                <div class="scene__shadow" aria-hidden="true"></div>
-
-                <div
-                    class="bulb{% if state.is_on %} is-on{% endif %}"
-                    id="bulb"
-                    role="img"
-                    aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
-                >
-                    <span class="bulb__halo" aria-hidden="true"></span>
-                    <span class="bulb__glass" aria-hidden="true">
-                        <span class="bulb__filament"></span>
-                        <span class="bulb__shine"></span>
-                    </span>
-                    <span class="bulb__neck" aria-hidden="true"></span>
-                    <span class="bulb__base" aria-hidden="true"></span>
-                    <span class="bulb__contact" aria-hidden="true"></span>
-                    <span class="bulb__socket" aria-hidden="true"></span>
-                </div>
-
-                <div class="scene__vignette" aria-hidden="true"></div>
-            </div>
-
             <div class="controls">
                 <div class="readout">
                     <p class="readout__caption">LIGHT STATUS</p>
@@ -73,8 +75,6 @@
                 保存できませんでした。少し待ってからもう一度押してください。
             </p>
         </section>
-
-        <footer class="footer">小さな光で、部屋の表情が変わる。</footer>
     </main>
 
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
