@@ -1,30 +1,7 @@
 import os
 
 from flask import Flask, jsonify, render_template
-from sqlalchemy import (
-    BigInteger,
-    Boolean,
-    Column,
-    Integer,
-    MetaData,
-    Table,
-    case,
-    create_engine,
-    select,
-    update,
-)
-from sqlalchemy.dialects.mysql import insert as mysql_insert
-from sqlalchemy.dialects.postgresql import insert as postgresql_insert
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-
-metadata = MetaData()
-bulb_state = Table(
-    "bulb_state",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("is_on", Boolean, nullable=False),
-    Column("press_count", BigInteger, nullable=False),
-)
+from sqlalchemy import create_engine, text
 
 
 class BulbDatabase:
@@ -48,7 +25,7 @@ class BulbDatabase:
                     "DB_USER, DB_PASSWORD, and DB_NAME are required for Cloud SQL."
                 )
 
-            from google.cloud.sql.connector import Connector
+            from google.cloud.sql.connector import Connector, IPTypes
 
             driver = "pg8000" if dialect == "postgres" else "pymysql"
             uri = "postgresql+pg8000://" if dialect == "postgres" else "mysql+pymysql://"
@@ -58,6 +35,7 @@ class BulbDatabase:
                 creator=lambda: self.connector.connect(
                     connection_name,
                     driver,
+                    ip_type=IPTypes.PRIVATE,
                     user=user,
                     password=password,
                     db=database,
@@ -77,48 +55,81 @@ class BulbDatabase:
         self._initialize()
 
     def _initialize(self):
-        metadata.create_all(self.engine)
-        values = {"id": 1, "is_on": False, "press_count": 0}
         with self.engine.begin() as connection:
             dialect = self.engine.dialect.name
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS bulb_state (
+                        id INTEGER PRIMARY KEY,
+                        is_on BOOLEAN NOT NULL,
+                        press_count BIGINT NOT NULL
+                    )
+                    """
+                )
+            )
             if dialect == "mysql":
-                statement = mysql_insert(bulb_state).values(**values)
-                statement = statement.on_duplicate_key_update(id=bulb_state.c.id)
-            elif dialect == "postgresql":
-                statement = postgresql_insert(bulb_state).values(**values)
-                statement = statement.on_conflict_do_nothing(index_elements=["id"])
-            elif dialect == "sqlite":
-                statement = sqlite_insert(bulb_state).values(**values)
-                statement = statement.on_conflict_do_nothing(index_elements=["id"])
+                insert_statement = """
+                    INSERT IGNORE INTO bulb_state (id, is_on, press_count)
+                    VALUES (:id, :is_on, :press_count)
+                """
+            elif dialect in {"postgresql", "sqlite"}:
+                insert_statement = """
+                    INSERT INTO bulb_state (id, is_on, press_count)
+                    VALUES (:id, :is_on, :press_count)
+                    ON CONFLICT (id) DO NOTHING
+                """
             else:
                 raise ValueError(f"Unsupported database dialect: {dialect}")
-            connection.execute(statement)
+            connection.execute(
+                text(insert_statement),
+                {"id": 1, "is_on": False, "press_count": 0},
+            )
 
     def get_state(self):
         with self.engine.connect() as connection:
             row = connection.execute(
-                select(bulb_state.c.is_on, bulb_state.c.press_count).where(
-                    bulb_state.c.id == 1
-                )
+                text(
+                    """
+                    SELECT is_on, press_count
+                    FROM bulb_state
+                    WHERE id = :id
+                    """
+                ),
+                {"id": 1},
             ).one()
-        return {"is_on": row.is_on, "press_count": row.press_count}
+        return {
+            "is_on": bool(row._mapping["is_on"]),
+            "press_count": row._mapping["press_count"],
+        }
 
     def toggle(self):
         with self.engine.begin() as connection:
             connection.execute(
-                update(bulb_state)
-                .where(bulb_state.c.id == 1)
-                .values(
-                    is_on=case((bulb_state.c.is_on.is_(True), False), else_=True),
-                    press_count=bulb_state.c.press_count + 1,
-                )
+                text(
+                    """
+                    UPDATE bulb_state
+                    SET is_on = CASE WHEN is_on THEN FALSE ELSE TRUE END,
+                        press_count = press_count + 1
+                    WHERE id = :id
+                    """
+                ),
+                {"id": 1},
             )
             row = connection.execute(
-                select(bulb_state.c.is_on, bulb_state.c.press_count).where(
-                    bulb_state.c.id == 1
-                )
+                text(
+                    """
+                    SELECT is_on, press_count
+                    FROM bulb_state
+                    WHERE id = :id
+                    """
+                ),
+                {"id": 1},
             ).one()
-        return {"is_on": row.is_on, "press_count": row.press_count}
+        return {
+            "is_on": bool(row._mapping["is_on"]),
+            "press_count": row._mapping["press_count"],
+        }
 
 
 def create_app(test_config=None):

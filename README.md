@@ -13,6 +13,10 @@ python app.py
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
 
+## SQL
+
+データベース操作は `app.py` 内に SQL 文として記述しています。`bulb_state` テーブルに現在の点灯状態 (`is_on`) と累計押下回数 (`press_count`) を保存します。テーブル作成、初期行登録、状態取得、切り替え更新に使う SQL は `BulbDatabase` クラス内で確認できます。初期行の重複防止構文だけは PostgreSQL / SQLite と MySQL で異なります。
+
 テスト:
 
 ```powershell
@@ -32,6 +36,7 @@ python -m unittest discover -s tests
    - Cloud SQL Admin API
    - Secret Manager API
 2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
+   - プライベートIPのみを使う場合、Cloud Run はインスタンスのプライベートIPと同じVPCネットワークへ接続できる必要があります。このリポジトリのデプロイ設定は `default` VPC の `default` サブネットからプライベートレンジへ egress します。
 3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
 4. GitHub Actions 用の Workload Identity Federation とサービスアカウントを作成します。サービスアカウントには以下のロールが必要です。
    - Cloud Run Admin (`roles/run.admin`)
@@ -101,4 +106,4 @@ Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
 
 Cloud Run の DB パスワードは GitHub に登録せず、Google Cloud Secret Manager の `applearning-db-password` に保存してください。
 
-Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。
+Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。Cloud SQL Connector はプライベートIPを使う設定です。Cloud Run の実行サービスアカウントには Cloud SQL Client (`roles/cloudsql.client`) を付与してください。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。
