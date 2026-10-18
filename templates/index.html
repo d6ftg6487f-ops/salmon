@@ -3,15 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta
-        name="theme-color"
-        content="{% if state.is_on %}#493d33{% else %}#11151b{% endif %}"
-    >
+    <meta name="theme-color" content="#11151a">
     <title>豆電球をつけたり消したりするだけ</title>
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='styles.css') }}"
-    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body class="{% if state.is_on %}lights-on{% endif %}">
@@ -19,43 +13,48 @@
         <header class="heading">
             <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
             <h1>豆電球を<br>つけたり消したりするだけ</h1>
-            <p class="description">部屋の隅にある、小さな明かり。</p>
+            <p class="description">部屋の隅に、ひとつだけ。</p>
         </header>
 
         <section class="switchboard" aria-label="豆電球の操作">
-            <div
-                class="scene{% if state.is_on %} is-on{% endif %}"
-                id="bulb"
-                role="img"
-                aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
-            >
-                <img
-                    class="scene__image scene__image--off"
-                    src="{{ url_for('static', filename='scene-off.webp') }}"
-                    alt=""
-                >
-                <img
-                    class="scene__image scene__image--on"
-                    src="{{ url_for('static', filename='scene-on.webp') }}"
-                    alt=""
-                >
+            <div class="scene">
+                <div class="scene__left-wall" aria-hidden="true"></div>
+                <div class="scene__right-wall" aria-hidden="true"></div>
+                <div class="scene__floor" aria-hidden="true"></div>
 
-                <!-- 写真の縁を少し落として、覗き込むような奥行きを出す -->
-                <span class="scene__vignette" aria-hidden="true"></span>
+                <!-- 点灯時に壁と床へ広がる光 -->
+                <div class="scene__wall-light" aria-hidden="true"></div>
+                <div class="scene__floor-light" aria-hidden="true"></div>
+                <div class="scene__shadow" aria-hidden="true"></div>
+
+                <div
+                    class="bulb{% if state.is_on %} is-on{% endif %}"
+                    id="bulb"
+                    role="img"
+                    aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
+                >
+                    <span class="bulb__halo" aria-hidden="true"></span>
+                    <span class="bulb__glass" aria-hidden="true">
+                        <span class="bulb__filament"></span>
+                        <span class="bulb__shine"></span>
+                    </span>
+                    <span class="bulb__neck" aria-hidden="true"></span>
+                    <span class="bulb__base" aria-hidden="true"></span>
+                    <span class="bulb__contact" aria-hidden="true"></span>
+                    <span class="bulb__socket" aria-hidden="true"></span>
+                </div>
+
+                <div class="scene__vignette" aria-hidden="true"></div>
             </div>
 
             <div class="controls">
                 <div class="readout">
                     <p class="readout__caption">LIGHT STATUS</p>
-
                     <p class="status" id="status" aria-live="polite">
                         {% if state.is_on %}ついています{% else %}消えています{% endif %}
                     </p>
-
                     <p class="counter">
-                        押した回数
-                        <span id="count">{{ state.press_count }}</span>
-                        回
+                        押した回数 <span id="count">{{ state.press_count }}</span> 回
                     </p>
                 </div>
 
@@ -66,9 +65,7 @@
                     aria-pressed="{{ 'true' if state.is_on else 'false' }}"
                 >
                     <span class="toggle__icon" aria-hidden="true"></span>
-                    <span id="button-label">
-                        {% if state.is_on %}消す{% else %}つける{% endif %}
-                    </span>
+                    <span id="button-label">{% if state.is_on %}消す{% else %}つける{% endif %}</span>
                 </button>
             </div>
 
@@ -77,14 +74,9 @@
             </p>
         </section>
 
-        <footer class="footer">
-            小さな光で、部屋の表情が変わる。
-        </footer>
+        <footer class="footer">小さな光で、部屋の表情が変わる。</footer>
     </main>
 
-    <script
-        src="{{ url_for('static', filename='bulb.js') }}"
-        defer
-    ></script>
+    <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
 </body>
 </html>
