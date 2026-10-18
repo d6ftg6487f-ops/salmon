@@ -13,6 +13,10 @@ python app.py
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
 
+## 3D電球
+
+電球は Three.js でブラウザー上に描画します。ライブラリは `static/vendor/` に同梱しているため、実行時に外部CDNへの接続は不要です。WebGLを利用できない環境では、ページ内のSVG電球を表示します。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
+
 ## SQL
 
 データベース操作は `app.py` 内に SQL 文として記述しています。`bulb_state` テーブルに現在の点灯状態 (`is_on`) と累計押下回数 (`press_count`) を保存します。テーブル作成、初期行登録、状態取得、切り替え更新に使う SQL は `BulbDatabase` クラス内で確認できます。初期行の重複防止構文だけは PostgreSQL / SQLite と MySQL で異なります。

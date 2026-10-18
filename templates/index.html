@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#15181c">
-    <title>豆電球をつけたり消したりするだけ</title>
+    <title>豆電球</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
@@ -27,15 +27,97 @@
             role="img"
             aria-label="{% if state.is_on %}点灯中{% else %}消灯中{% endif %}"
         >
-            <span class="bulb__halo" aria-hidden="true"></span>
-            <span class="bulb__glass" aria-hidden="true">
-                <span class="bulb__filament"></span>
-                <span class="bulb__shine"></span>
-            </span>
-            <span class="bulb__neck" aria-hidden="true"></span>
-            <span class="bulb__base" aria-hidden="true"></span>
-            <span class="bulb__contact" aria-hidden="true"></span>
-            <span class="bulb__socket" aria-hidden="true"></span>
+            <canvas class="bulb__canvas" aria-hidden="true"></canvas>
+            <svg class="bulb__art" viewBox="0 0 260 390" aria-hidden="true" focusable="false">
+                <defs>
+                    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0.85">
+                        <stop offset="0" stop-color="#eef7fb" stop-opacity=".1"/>
+                        <stop offset=".18" stop-color="#d9e8ed" stop-opacity=".025"/>
+                        <stop offset=".48" stop-color="#f4f6ed" stop-opacity=".08"/>
+                        <stop offset=".76" stop-color="#dce8ed" stop-opacity=".025"/>
+                        <stop offset="1" stop-color="#f7fbf4" stop-opacity=".18"/>
+                    </linearGradient>
+                    <radialGradient id="glass-lit" cx=".48" cy=".58" r=".68">
+                        <stop offset="0" stop-color="#fffde6" stop-opacity=".38"/>
+                        <stop offset=".26" stop-color="#ffe9a5" stop-opacity=".34"/>
+                        <stop offset=".65" stop-color="#ffc45e" stop-opacity=".24"/>
+                        <stop offset="1" stop-color="#ffb84f" stop-opacity=".12"/>
+                    </radialGradient>
+                    <radialGradient id="glass-volume" cx=".33" cy=".28" r=".8">
+                        <stop offset="0" stop-color="#fff" stop-opacity=".23"/>
+                        <stop offset=".23" stop-color="#d9e7eb" stop-opacity=".08"/>
+                        <stop offset=".58" stop-color="#c5d6dc" stop-opacity="0"/>
+                        <stop offset=".88" stop-color="#0b1013" stop-opacity=".1"/>
+                        <stop offset="1" stop-color="#05080a" stop-opacity=".58"/>
+                    </radialGradient>
+                    <radialGradient id="glass-warm-volume" cx=".36" cy=".3" r=".82">
+                        <stop offset="0" stop-color="#fff6d5" stop-opacity=".18"/>
+                        <stop offset=".3" stop-color="#fff0c0" stop-opacity=".06"/>
+                        <stop offset=".72" stop-color="#dc812b" stop-opacity=".06"/>
+                        <stop offset="1" stop-color="#793713" stop-opacity=".38"/>
+                    </radialGradient>
+                    <linearGradient id="glass-reflection" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+                        <stop offset=".42" stop-color="#fff" stop-opacity=".7"/>
+                        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+                    </radialGradient>
+                    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#353a3a"/>
+                        <stop offset=".16" stop-color="#8b918c"/>
+                        <stop offset=".31" stop-color="#d5d7ca"/>
+                        <stop offset=".47" stop-color="#777d78"/>
+                        <stop offset=".64" stop-color="#c7c9bd"/>
+                        <stop offset=".82" stop-color="#686e6b"/>
+                        <stop offset="1" stop-color="#272c2d"/>
+                    </linearGradient>
+                    <linearGradient id="metal-edge" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#e0e1d5" stop-opacity=".65"/>
+                        <stop offset=".45" stop-color="#171b1c" stop-opacity=".8"/>
+                        <stop offset="1" stop-color="#d1d1c5" stop-opacity=".3"/>
+                    </linearGradient>
+                    <linearGradient id="filament" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#b77c38"/>
+                        <stop offset=".5" stop-color="#f3d18d"/>
+                        <stop offset="1" stop-color="#79522d"/>
+                    </linearGradient>
+                    <filter id="bulb-glow" x="-100%" y="-100%" width="300%" height="300%">
+                        <feGaussianBlur stdDeviation="8"/>
+                    </filter>
+                    <clipPath id="globe-clip">
+                        <path d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+                    </clipPath>
+                </defs>
+
+                <ellipse class="bulb__ground-glow" cx="130" cy="351" rx="75" ry="10"/>
+                <path class="bulb__glass-glow" d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+
+                <path class="bulb__socket" d="M77 332h106l13 12v9H64v-9l13-12Z"/>
+                <path class="bulb__socket-rim" d="M66 343h128M68 349h124"/>
+
+                <path class="bulb__glass" d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+                <g clip-path="url(#globe-clip)">
+                    <path class="bulb__glass-fill" d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+                    <path class="bulb__glass-volume" d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+                    <path class="bulb__stem" d="M126 180v127m8-127v127"/>
+                    <path class="bulb__support" d="M107 306c2-34 5-76 10-111m36 111c-2-34-5-76-10-111"/>
+                    <path class="bulb__support" d="M113 196c5 6 11 9 17 9s12-3 17-9"/>
+                    <path class="bulb__filament" d="M104 186l6-10 6 10 6-10 6 10 6-10 6 10 6-10 6 10 6-10 6 10"/>
+                    <path class="bulb__filament-core" d="M104 186l6-10 6 10 6-10 6 10 6-10 6 10 6-10 6 10 6-10 6 10"/>
+                    <ellipse class="bulb__reflection" cx="76" cy="105" rx="12" ry="48" transform="rotate(-17 76 105)"/>
+                    <path class="bulb__reflection-line" d="M58 73c-7 17-9 35-7 51"/>
+                    <ellipse class="bulb__reflection-soft" cx="183" cy="137" rx="7" ry="30" transform="rotate(18 183 137)"/>
+                    <path class="bulb__inner-reflection" d="M104 43c-20 9-34 28-39 51" />
+                    <path class="bulb__window-reflection" d="M68 61c12-19 31-30 50-31-18 8-31 19-40 35-11 20-16 42-16 67-5-23-3-51 6-71Z"/>
+                    <path class="bulb__edge-reflection" d="M47 111c0 29 13 51 30 68m137-69c0 28-13 49-29 66"/>
+                </g>
+                <path class="bulb__neck" d="M96 235h68v32H96z"/>
+                <path class="bulb__neck-highlight" d="M101 239v24m58-24v24"/>
+                <path class="bulb__base" d="M95 264h70l8 9-5 7 5 7-5 7 5 7-5 7 5 7-8 10H95l-8-10 5-7-5-7 5-7-5-7 5-7-5-7 8-9Z"/>
+                <path class="bulb__thread" d="M92 276h76m-76 14h76m-76 14h76m-76 14h76"/>
+                <path class="bulb__contact" d="M109 331h42l8 7H101l8-7Z"/>
+                <path class="bulb__glass-outline" d="M130 19C77 19 39 59 39 113c0 39 18 62 39 83 13 13 18 24 19 39h66c1-15 6-26 19-39 21-21 39-44 39-83 0-54-38-94-91-94Z"/>
+                <path class="bulb__glass-rim" d="M96 235h68"/>
+            </svg>
         </div>
 
         <div class="scene__vignette" aria-hidden="true"></div>
@@ -45,7 +127,7 @@
     <main class="page">
         <header class="heading">
             <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
-            <h1>豆電球を つけたり消したりするだけ</h1>
+            <h1>豆電球</h1>
         </header>
 
         <section class="switchboard" aria-label="豆電球の操作">
@@ -53,7 +135,7 @@
                 <div class="readout">
                     <p class="readout__caption">LIGHT STATUS</p>
                     <p class="status" id="status" aria-live="polite">
-                        {% if state.is_on %}ついています{% else %}消えています{% endif %}
+                        {% if state.is_on %}ON{% else %}OFF{% endif %}
                     </p>
                     <p class="counter">
                         押した回数 <span id="count">{{ state.press_count }}</span> 回
@@ -78,5 +160,6 @@
     </main>
 
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='three-bulb.js') }}"></script>
 </body>
 </html>

@@ -19,7 +19,9 @@ class BulbAppTests(unittest.TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("消えています".encode(), response.data)
+        self.assertIn("<title>豆電球</title>".encode(), response.data)
+        self.assertIn("<h1>豆電球</h1>".encode(), response.data)
+        self.assertIn("OFF".encode(), response.data)
         self.assertIn(
             "押した回数 <span id=\"count\">0</span> 回".encode(),
             response.data,
@@ -51,7 +53,7 @@ class BulbAppTests(unittest.TestCase):
                 "押した回数 <span id=\"count\">1</span> 回".encode(),
                 response.data,
             )
-            self.assertIn("ついています".encode(), response.data)
+            self.assertIn("ON".encode(), response.data)
             second_app.extensions["bulb_database"].engine.dispose()
 
 
