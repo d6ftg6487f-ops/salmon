@@ -13,6 +13,28 @@ python app.py
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
 
+## Firebase ログインの設定
+
+このアプリの操作には Google アカウントでのログインが必要です。Firebase コンソールで Authentication の Google プロバイダーを有効にし、Web アプリを登録して、次の値を環境変数として設定してください。
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_APP_ID`
+
+ローカルでは PowerShell で Firebase Web アプリの設定値を環境変数に登録してから起動します。
+
+```powershell
+$env:FIREBASE_API_KEY = "FirebaseのAPIキー"
+$env:FIREBASE_AUTH_DOMAIN = "プロジェクトID.firebaseapp.com"
+$env:FIREBASE_PROJECT_ID = "プロジェクトID"
+$env:FIREBASE_APP_ID = "FirebaseのアプリID"
+gcloud auth application-default login
+python app.py
+```
+
+Google Cloud SDK による認証情報がないと、サーバー側でFirebase IDトークンを検証できません。Firebase の設定がない場合、ログインと豆電球の操作は利用できません。
+
 ## 3D電球
 
 電球は Three.js でブラウザー上に描画します。ライブラリは `static/vendor/` に同梱しているため、実行時に外部CDNへの接続は不要です。WebGLを利用できない環境では、ページ内のSVG電球を表示します。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
@@ -102,6 +124,10 @@ Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
 - `DB_DIALECT`: `postgres` または `mysql`
 - `DB_USER`: Cloud SQL のアプリ用ユーザー名
 - `DB_NAME`: Cloud SQL のデータベース名
+- `FIREBASE_API_KEY`: Firebase Web アプリの API キー
+- `FIREBASE_AUTH_DOMAIN`: Firebase Web アプリの認証ドメイン
+- `FIREBASE_PROJECT_ID`: Firebase プロジェクト ID
+- `FIREBASE_APP_ID`: Firebase Web アプリ ID
 
 #### Secrets
 

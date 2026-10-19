@@ -71,6 +71,11 @@
             <button class="auth__button" id="logout" type="button" hidden>
                 ログアウト
             </button>
+            {% if not firebase_config %}
+            <span class="auth__setup" role="status">
+                Firebaseのログイン設定が必要です
+            </span>
+            {% endif %}
         </div>
 
         <section class="switchboard" aria-label="豆電球の操作">
