@@ -44,12 +44,8 @@ jobs:
           DB_DIALECT: ${{ vars.DB_DIALECT }}
           DB_USER: ${{ vars.DB_USER }}
           DB_NAME: ${{ vars.DB_NAME }}
-          FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-          FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
         run: |
-          for key in GCP_PROJECT_ID GCP_SERVICE_ACCOUNT CLOUD_SQL_CONNECTION_NAME DB_DIALECT DB_USER DB_NAME FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_APP_ID; do
+          for key in GCP_PROJECT_ID GCP_SERVICE_ACCOUNT CLOUD_SQL_CONNECTION_NAME DB_DIALECT DB_USER DB_NAME; do
             if [[ -z "${!key}" ]]; then
               echo "::error::$key must be configured in GitHub Actions."
               exit 1
@@ -61,7 +57,7 @@ jobs:
             exit 1
           fi
 
-          python -c 'import json, os; keys = ("CLOUD_SQL_CONNECTION_NAME", "DB_DIALECT", "DB_USER", "DB_NAME", "FIREBASE_API_KEY", "FIREBASE_AUTH_DOMAIN", "FIREBASE_PROJECT_ID", "FIREBASE_APP_ID"); json.dump({key: os.environ[key] for key in keys}, open(os.path.join(os.environ["RUNNER_TEMP"], "cloud-run-env.json"), "w"))'
+          python -c 'import json, os; keys = ("CLOUD_SQL_CONNECTION_NAME", "DB_DIALECT", "DB_USER", "DB_NAME"); json.dump({key: os.environ[key] for key in keys}, open(os.path.join(os.environ["RUNNER_TEMP"], "cloud-run-env.json"), "w"))'
 
           gcloud run deploy "$SERVICE" \
             --source . \

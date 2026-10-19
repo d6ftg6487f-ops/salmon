@@ -62,22 +62,6 @@
             <h1>豆電球</h1>
         </header>
 
-        <!-- ログイン状態（右上）。表示の切り替えは auth.js が行う -->
-        <div class="auth" aria-label="ログイン">
-            <span class="auth__user" id="user" hidden></span>
-            <button class="auth__button" id="login" type="button" hidden>
-                Googleでログイン
-            </button>
-            <button class="auth__button" id="logout" type="button" hidden>
-                ログアウト
-            </button>
-            {% if not firebase_config %}
-            <span class="auth__setup" role="status">
-                Firebaseのログイン設定が必要です
-            </span>
-            {% endif %}
-        </div>
-
         <section class="switchboard" aria-label="豆電球の操作">
             <div class="controls">
                 <div class="readout">
@@ -109,14 +93,6 @@
             </p>
         </section>
     </main>
-
-    <!-- Firebase の設定が揃っているときだけ、ログイン機能を読み込む -->
-    {% if firebase_config %}
-    <script>
-        window.FIREBASE_CONFIG = {{ firebase_config | tojson }};
-    </script>
-    <script type="module" src="{{ url_for('static', filename='auth.js') }}"></script>
-    {% endif %}
 
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
 </body>

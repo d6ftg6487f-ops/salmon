@@ -1,13 +1,7 @@
-import logging
 import os
-from functools import wraps
 
-import firebase_admin
-from firebase_admin import auth as firebase_auth
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, jsonify, render_template
 from sqlalchemy import create_engine, text
-
-logger = logging.getLogger(__name__)
 
 
 class BulbDatabase:
@@ -138,42 +132,6 @@ class BulbDatabase:
         }
 
 
-# ── 認証 ──────────────────────────────────
-
-
-def init_firebase(project_id):
-    """Firebase Admin SDK を一度だけ初期化する"""
-    try:
-        firebase_admin.get_app()
-    except ValueError:
-        options = {"projectId": project_id} if project_id else None
-        firebase_admin.initialize_app(options=options)
-
-
-def require_login(view):
-    """ログイン済みのユーザーなら誰でも通す"""
-
-    @wraps(view)
-    def wrapper(*args, **kwargs):
-        header = request.headers.get("Authorization", "")
-        if not header.startswith("Bearer "):
-            return jsonify(error="login_required"), 401
-
-        try:
-            decoded = firebase_auth.verify_id_token(header.removeprefix("Bearer "))
-        except Exception:
-            logger.warning("IDトークンの検証に失敗しました。", exc_info=True)
-            return jsonify(error="invalid_token"), 401
-
-        g.user = decoded  # 後続の処理で uid などを使えるようにする
-        return view(*args, **kwargs)
-
-    return wrapper
-
-
-# ── アプリ本体 ─────────────────────────────
-
-
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(
@@ -183,48 +141,20 @@ def create_app(test_config=None):
         DB_USER=os.environ.get("DB_USER"),
         DB_PASSWORD=os.environ.get("DB_PASSWORD"),
         DB_NAME=os.environ.get("DB_NAME"),
-        FIREBASE_API_KEY=os.environ.get("FIREBASE_API_KEY"),
-        FIREBASE_AUTH_DOMAIN=os.environ.get("FIREBASE_AUTH_DOMAIN"),
-        FIREBASE_PROJECT_ID=os.environ.get("FIREBASE_PROJECT_ID"),
-        FIREBASE_APP_ID=os.environ.get("FIREBASE_APP_ID"),
     )
     if test_config:
         app.config.update(test_config)
-
-    init_firebase(app.config["FIREBASE_PROJECT_ID"])
-
-    # フロントに渡す設定。どれか欠けていれば None（ログイン機能を読み込まない）
-    firebase_config = {
-        "apiKey": app.config["FIREBASE_API_KEY"],
-        "authDomain": app.config["FIREBASE_AUTH_DOMAIN"],
-        "projectId": app.config["FIREBASE_PROJECT_ID"],
-        "appId": app.config["FIREBASE_APP_ID"],
-    }
-    if not all(firebase_config.values()):
-        logger.warning("Firebase の設定が不足しています。ログイン機能は無効です。")
-        firebase_config = None
 
     database = BulbDatabase(app.config)
     app.extensions["bulb_database"] = database
 
     @app.get("/")
     def index():
-        return render_template(
-            "index.html",
-            state=database.get_state(),
-            firebase_config=firebase_config,
-        )
+        return render_template("index.html", state=database.get_state())
 
     @app.post("/api/toggle")
-    @require_login
     def toggle():
         return jsonify(database.toggle())
-
-    @app.after_request
-    def no_cache_for_api(response):
-        if request.path.startswith("/api/"):
-            response.headers["Cache-Control"] = "no-store"
-        return response
 
     return app
 

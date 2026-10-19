@@ -2,4 +2,3 @@ Flask==3.1.2
 gunicorn==23.0.0
 SQLAlchemy==2.0.43
 cloud-sql-python-connector[pg8000,pymysql]==1.18.2
-firebase-admin

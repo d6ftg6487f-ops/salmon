@@ -8,39 +8,12 @@ const scene = document.querySelector(".scene");
 const favicon = document.querySelector("#favicon");
 const themeColor = document.querySelector("#theme-color");
 
-const defaultErrorText = errorMessage.textContent.trim();
-
-function showError(message = defaultErrorText) {
-  errorMessage.textContent = message;
-  errorMessage.hidden = false;
-}
-
 toggleButton.addEventListener("click", async () => {
   toggleButton.disabled = true;
   errorMessage.hidden = true;
 
   try {
-    // auth.js が読み込まれていない場合は undefined になる
-    const token = await window.getIdToken?.();
-    if (!token) {
-      showError("操作するにはログインしてください。");
-      return;
-    }
-
-    const response = await fetch("/api/toggle", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.status === 401) {
-      showError("ログインの有効期限が切れました。もう一度ログインしてください。");
-      return;
-    }
-
-    if (response.status === 403) {
-      showError("このアカウントでは操作できません。");
-      return;
-    }
+    const response = await fetch("/api/toggle", { method: "POST" });
 
     if (!response.ok) {
       throw new Error(`Toggle request failed with status ${response.status}`);
@@ -53,17 +26,19 @@ toggleButton.addEventListener("click", async () => {
     bulb.setAttribute("aria-label", state.is_on ? "点灯中" : "消灯中");
     toggleButton.setAttribute("aria-pressed", String(state.is_on));
 
+    // ステータスは ON / OFF 表記。読み上げ用には文章を残す
     statusText.textContent = state.is_on ? "ON" : "OFF";
     statusText.setAttribute("aria-label", state.is_on ? "ついています" : "消えています");
 
     buttonLabel.textContent = state.is_on ? "消す" : "つける";
     pressCount.textContent = state.press_count;
 
+    // タブのアイコンとブラウザーのテーマ色も切り替える
     favicon.href = state.is_on ? favicon.dataset.on : favicon.dataset.off;
     themeColor.content = state.is_on ? "#3a3029" : "#15181c";
   } catch (error) {
     console.error("豆電球の状態を更新できませんでした。", error);
-    showError();
+    errorMessage.hidden = false;
   } finally {
     toggleButton.disabled = false;
   }
