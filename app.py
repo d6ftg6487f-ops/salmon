@@ -4,7 +4,7 @@ from functools import wraps
 
 import firebase_admin
 from firebase_admin import auth as firebase_auth
-from flask import Flask, current_app, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request
 from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
@@ -141,11 +141,6 @@ class BulbDatabase:
 # ── 認証 ──────────────────────────────────
 
 
-def parse_allowed_emails(value):
-    """カンマ区切りのメールアドレスを、小文字の集合に変換する"""
-    return {email.strip().lower() for email in (value or "").split(",") if email.strip()}
-
-
 def init_firebase(project_id):
     """Firebase Admin SDK を一度だけ初期化する"""
     try:
@@ -156,7 +151,7 @@ def init_firebase(project_id):
 
 
 def require_login(view):
-    """ログイン済み、かつ許可リストにあるユーザーだけを通す"""
+    """ログイン済みのユーザーなら誰でも通す"""
 
     @wraps(view)
     def wrapper(*args, **kwargs):
@@ -169,11 +164,6 @@ def require_login(view):
         except Exception:
             logger.warning("IDトークンの検証に失敗しました。", exc_info=True)
             return jsonify(error="invalid_token"), 401
-
-        email = (decoded.get("email") or "").lower()
-        allowed = current_app.config["ALLOWED_EMAILS"]
-        if not decoded.get("email_verified") or email not in allowed:
-            return jsonify(error="forbidden"), 403
 
         g.user = decoded  # 後続の処理で uid などを使えるようにする
         return view(*args, **kwargs)
@@ -193,7 +183,6 @@ def create_app(test_config=None):
         DB_USER=os.environ.get("DB_USER"),
         DB_PASSWORD=os.environ.get("DB_PASSWORD"),
         DB_NAME=os.environ.get("DB_NAME"),
-        ALLOWED_EMAILS=parse_allowed_emails(os.environ.get("ALLOWED_EMAILS")),
         FIREBASE_API_KEY=os.environ.get("FIREBASE_API_KEY"),
         FIREBASE_AUTH_DOMAIN=os.environ.get("FIREBASE_AUTH_DOMAIN"),
         FIREBASE_PROJECT_ID=os.environ.get("FIREBASE_PROJECT_ID"),
@@ -202,12 +191,9 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
-    if not app.config["ALLOWED_EMAILS"]:
-        logger.warning("ALLOWED_EMAILS が空です。誰も操作できません。")
-
     init_firebase(app.config["FIREBASE_PROJECT_ID"])
 
-    # フロントに渡す設定。どれか欠けていれば None（ログインUIを出さない）
+    # フロントに渡す設定。どれか欠けていれば None（ログイン機能を読み込まない）
     firebase_config = {
         "apiKey": app.config["FIREBASE_API_KEY"],
         "authDomain": app.config["FIREBASE_AUTH_DOMAIN"],
@@ -215,6 +201,7 @@ def create_app(test_config=None):
         "appId": app.config["FIREBASE_APP_ID"],
     }
     if not all(firebase_config.values()):
+        logger.warning("Firebase の設定が不足しています。ログイン機能は無効です。")
         firebase_config = None
 
     database = BulbDatabase(app.config)
