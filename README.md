@@ -13,6 +13,25 @@ python app.py
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
 
+## 豆電球チャット
+
+画面右上のチャットで、このアプリや豆電球の操作について質問できます。回答には Vertex AI の Gemini を使います。会話履歴はブラウザー内だけで保持され、ページを再読み込みすると消去されます。
+
+ローカルで試す場合は、Google Cloud プロジェクトで Vertex AI API を有効にし、ADC (Application Default Credentials) を設定します。
+
+```powershell
+gcloud auth application-default login
+$env:GOOGLE_CLOUD_PROJECT = "あなたのプロジェクトID"
+$env:VERTEX_AI_LOCATION = "global"
+python app.py
+```
+
+既定モデルは、低コスト向けの `gemini-3.1-flash-lite` です。`GEMINI_MODEL` 環境変数で変更できます。`VERTEX_AI_LOCATION` は既定で `global` です。モデルの提供状況・単価はリージョンや時期で変わるため、利用前に [Vertex AI の料金](https://cloud.google.com/vertex-ai/generative-ai/pricing) と[モデルの提供状況](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-1-flash-lite)を確認してください。global endpoint では処理されるリージョンを指定できないため、データ所在地の要件があれば対応リージョンを設定してください。
+
+利用量を抑えるため、質問は最大1,000文字、履歴は直近6メッセージ、回答は最大256トークンに制限し、Gemini 3 の思考レベルも `MINIMAL` にしています。Vertex AI はトークン量に応じて課金されます。Google Cloud の予算アラートも設定してください (アラートは利用停止を保証する上限ではありません)。Cloud SQL を使っている場合、そのインスタンス料金はチャットの利用量とは別に発生します。
+
+Cloud Run は現在 unauthenticated (認証なし) で公開する設定です。上記の制限は1リクエストあたりの上限で、月間の利用総額を止めるものではありません。公開利用の前に認証やレート制限を追加してください。まず試すだけならローカルで動かしてください。
+
 ## 3D電球
 
 電球は Three.js でブラウザー上に描画します。ライブラリは `static/vendor/` に同梱しているため、実行時に外部CDNへの接続は不要です。WebGLを利用できない環境では、ページ内のSVG電球を表示します。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
@@ -39,6 +58,7 @@ python -m unittest discover -s tests
    - Artifact Registry API
    - Cloud SQL Admin API
    - Secret Manager API
+   - Vertex AI API
 2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
    - プライベートIPのみを使う場合、Cloud Run はインスタンスのプライベートIPと同じVPCネットワークへ接続できる必要があります。このリポジトリのデプロイ設定は `default` VPC の `default` サブネットからプライベートレンジへ egress します。
 3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
@@ -50,6 +70,7 @@ python -m unittest discover -s tests
    - Artifact Registry Writer (`roles/artifactregistry.writer`)
    - Cloud SQL Client (`roles/cloudsql.client`)
    - Secret Manager Secret Accessor (`roles/secretmanager.secretAccessor`)
+   - Vertex AI User (`roles/aiplatform.user`) — Cloud Run の実行サービスアカウントに付与
 
 ### Workload Identity Federation の設定例
 
@@ -64,7 +85,7 @@ $PROVIDER_ID = "github"
 $SERVICE_ACCOUNT = "github-actions"
 
 gcloud config set project $PROJECT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com
 
 gcloud iam service-accounts create $SERVICE_ACCOUNT --project $PROJECT_ID
 $SERVICE_ACCOUNT_EMAIL = "$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com"
@@ -76,6 +97,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SER
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/iam.serviceAccountUser
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/cloudsql.client
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/secretmanager.secretAccessor
+gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/aiplatform.user
 
 gcloud iam workload-identity-pools create $POOL_ID --project $PROJECT_ID --location global --display-name "GitHub Actions"
 gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID --project $PROJECT_ID --location global --workload-identity-pool $POOL_ID --display-name "GitHub" --issuer-uri "https://token.actions.githubusercontent.com" --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" --attribute-condition "assertion.repository == '$GITHUB_REPO'"
@@ -110,4 +132,9 @@ Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
 
 Cloud Run の DB パスワードは GitHub に登録せず、Google Cloud Secret Manager の `applearning-db-password` に保存してください。
 
-Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。Cloud SQL Connector はプライベートIPを使う設定です。Cloud Run の実行サービスアカウントには Cloud SQL Client (`roles/cloudsql.client`) を付与してください。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。
+#### 任意の Variables
+
+- `GEMINI_MODEL`: Vertex AI のモデル ID (省略時 `gemini-3.1-flash-lite`)
+- `VERTEX_AI_LOCATION`: Vertex AI のリージョン/エンドポイント (省略時 `global`)
+
+Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。Cloud SQL Connector はプライベートIPを使う設定です。Cloud Run の実行サービスアカウントには Cloud SQL Client (`roles/cloudsql.client`) と Vertex AI User (`roles/aiplatform.user`) を付与してください。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。

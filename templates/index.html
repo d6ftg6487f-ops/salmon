@@ -62,6 +62,30 @@
             <h1>豆電球</h1>
         </header>
 
+        <section class="chat" aria-label="豆電球について質問">
+            <h2 class="chat__title">豆電球に質問</h2>
+            <div class="chat__messages" id="chat-messages" aria-live="polite">
+                <p class="chat__message chat__message--assistant">
+                    豆電球の使い方や、このアプリについて質問できます。
+                </p>
+            </div>
+            <form class="chat__form" id="chat-form">
+                <label class="visually-hidden" for="chat-input">質問</label>
+                <input
+                    class="chat__input"
+                    id="chat-input"
+                    name="message"
+                    type="text"
+                    maxlength="1000"
+                    placeholder="例：電球をどうやって消すの？"
+                    autocomplete="off"
+                    required
+                >
+                <button class="chat__send" id="chat-send" type="submit">送信</button>
+            </form>
+            <p class="chat__note">回答には Vertex AI を使用します。</p>
+        </section>
+
         <section class="switchboard" aria-label="豆電球の操作">
             <div class="controls">
                 <div class="readout">
@@ -95,5 +119,6 @@
     </main>
 
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='chat.js') }}" defer></script>
 </body>
 </html>

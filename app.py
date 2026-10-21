@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from sqlalchemy import create_engine, text
 
 
@@ -141,6 +141,9 @@ def create_app(test_config=None):
         DB_USER=os.environ.get("DB_USER"),
         DB_PASSWORD=os.environ.get("DB_PASSWORD"),
         DB_NAME=os.environ.get("DB_NAME"),
+        GOOGLE_CLOUD_PROJECT=os.environ.get("GOOGLE_CLOUD_PROJECT"),
+        VERTEX_AI_LOCATION=os.environ.get("VERTEX_AI_LOCATION", "global"),
+        GEMINI_MODEL=os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite"),
     )
     if test_config:
         app.config.update(test_config)
@@ -155,6 +158,84 @@ def create_app(test_config=None):
     @app.post("/api/toggle")
     def toggle():
         return jsonify(database.toggle())
+
+    @app.post("/api/chat")
+    def chat():
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify(error="JSON形式で送信してください。"), 400
+
+        message = data.get("message")
+        history = data.get("history", [])
+        if not isinstance(message, str) or not message.strip() or len(message) > 1000:
+            return jsonify(error="質問は1〜1000文字で入力してください。"), 400
+        if not isinstance(history, list) or len(history) > 6:
+            return jsonify(error="会話履歴の形式が正しくありません。"), 400
+
+        contents = []
+        for entry in history:
+            if (
+                not isinstance(entry, dict)
+                or entry.get("role") not in {"user", "model"}
+                or not isinstance(entry.get("text"), str)
+                or not entry["text"].strip()
+                or len(entry["text"]) > 1000
+            ):
+                return jsonify(error="会話履歴の形式が正しくありません。"), 400
+            contents.append(
+                {"role": entry["role"], "parts": [{"text": entry["text"]}]}
+            )
+        contents.append({"role": "user", "parts": [{"text": message.strip()}]})
+
+        from google import genai
+        from google.auth.exceptions import GoogleAuthError
+        from google.genai import types
+        from google.genai.errors import APIError
+
+        try:
+            client = app.config.get("VERTEX_CLIENT")
+            if client is None:
+                project = app.config.get("GOOGLE_CLOUD_PROJECT")
+                if not project:
+                    app.logger.error("GOOGLE_CLOUD_PROJECT is not configured.")
+                    return jsonify(error="チャット機能の設定が完了していません。"), 503
+
+                client = app.extensions.get("vertex_client")
+                if client is None:
+                    client = genai.Client(
+                        vertexai=True,
+                        project=project,
+                        location=app.config["VERTEX_AI_LOCATION"],
+                    )
+                    app.extensions["vertex_client"] = client
+
+            response = client.models.generate_content(
+                model=app.config["GEMINI_MODEL"],
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "あなたは豆電球アプリの案内チャットです。豆電球の使い方、"
+                        "点灯状態、アプリの機能について日本語で簡潔に回答してください。"
+                        "それ以外の質問には、このアプリに関する質問のみ回答できると伝えてください。"
+                    ),
+                    max_output_tokens=256,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_level=types.ThinkingLevel.MINIMAL
+                    ),
+                ),
+            )
+        except (APIError, GoogleAuthError):
+            app.logger.exception("Vertex AI request failed.")
+            return (
+                jsonify(error="回答を取得できませんでした。少し待ってからお試しください。"),
+                502,
+            )
+
+        answer = response.text
+        if not answer:
+            app.logger.error("Vertex AI returned an empty response.")
+            return jsonify(error="回答を取得できませんでした。別の質問をお試しください。"), 502
+        return jsonify(answer=answer)
 
     return app
 

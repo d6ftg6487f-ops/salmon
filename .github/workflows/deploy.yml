@@ -39,11 +39,13 @@ jobs:
       - name: Deploy to Cloud Run
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           CLOUD_SQL_CONNECTION_NAME: ${{ vars.CLOUD_SQL_CONNECTION_NAME }}
           DB_DIALECT: ${{ vars.DB_DIALECT }}
           DB_USER: ${{ vars.DB_USER }}
           DB_NAME: ${{ vars.DB_NAME }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          VERTEX_AI_LOCATION: ${{ vars.VERTEX_AI_LOCATION }}
         run: |
           for key in GCP_PROJECT_ID GCP_SERVICE_ACCOUNT CLOUD_SQL_CONNECTION_NAME DB_DIALECT DB_USER DB_NAME; do
             if [[ -z "${!key}" ]]; then
@@ -57,7 +59,7 @@ jobs:
             exit 1
           fi
 
-          python -c 'import json, os; keys = ("CLOUD_SQL_CONNECTION_NAME", "DB_DIALECT", "DB_USER", "DB_NAME"); json.dump({key: os.environ[key] for key in keys}, open(os.path.join(os.environ["RUNNER_TEMP"], "cloud-run-env.json"), "w"))'
+          python -c 'import json, os; keys = ("CLOUD_SQL_CONNECTION_NAME", "DB_DIALECT", "DB_USER", "DB_NAME"); values = {key: os.environ[key] for key in keys}; values["GOOGLE_CLOUD_PROJECT"] = os.environ["GCP_PROJECT_ID"]; values["GEMINI_MODEL"] = os.environ.get("GEMINI_MODEL") or "gemini-3.1-flash-lite"; values["VERTEX_AI_LOCATION"] = os.environ.get("VERTEX_AI_LOCATION") or "global"; json.dump(values, open(os.path.join(os.environ["RUNNER_TEMP"], "cloud-run-env.json"), "w"))'
 
           gcloud run deploy "$SERVICE" \
             --source . \

@@ -21,6 +21,8 @@ class BulbAppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("<title>豆電球</title>".encode(), response.data)
         self.assertIn("<h1>豆電球</h1>".encode(), response.data)
+        self.assertIn("豆電球に質問".encode(), response.data)
+        self.assertIn("chat.js".encode(), response.data)
         self.assertIn("OFF".encode(), response.data)
         self.assertIn(
             "押した回数 <span id=\"count\">0</span> 回".encode(),
@@ -55,6 +57,66 @@ class BulbAppTests(unittest.TestCase):
             )
             self.assertIn("ON".encode(), response.data)
             second_app.extensions["bulb_database"].engine.dispose()
+
+    def test_chat_returns_vertex_response_and_limits_generated_tokens(self):
+        class FakeModels:
+            def generate_content(self, **kwargs):
+                self.request = kwargs
+                return type("Response", (), {"text": "電球はボタンで消せます。"})()
+
+        class FakeClient:
+            def __init__(self):
+                self.models = FakeModels()
+
+        fake_client = FakeClient()
+        app = create_app(
+            {
+                "TESTING": True,
+                "DATABASE_URL": "sqlite:///:memory:",
+                "VERTEX_CLIENT": fake_client,
+            }
+        )
+        try:
+            client = app.test_client()
+            response = client.post(
+                "/api/chat",
+                json={
+                    "message": "消し方は？",
+                    "history": [{"role": "user", "text": "こんにちは"}],
+                },
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_json(), {"answer": "電球はボタンで消せます。"})
+            self.assertEqual(
+                fake_client.models.request["model"],
+                "gemini-3.1-flash-lite",
+            )
+            self.assertEqual(
+                fake_client.models.request["config"].max_output_tokens,
+                256,
+            )
+            self.assertEqual(
+                fake_client.models.request["config"].thinking_config.thinking_level.value,
+                "MINIMAL",
+            )
+        finally:
+            app.extensions["bulb_database"].engine.dispose()
+
+    def test_chat_rejects_invalid_or_oversized_input(self):
+        response = self.client.post("/api/chat", json={"message": "質問", "history": "bad"})
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post("/api/chat", json={"message": "あ" * 1001})
+        self.assertEqual(response.status_code, 400)
+
+    def test_chat_requires_vertex_project_configuration(self):
+        response = self.client.post("/api/chat", json={"message": "電球の消し方"})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.get_json(),
+            {"error": "チャット機能の設定が完了していません。"},
+        )
 
 
 if __name__ == "__main__":
