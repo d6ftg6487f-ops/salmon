@@ -39,7 +39,7 @@ jobs:
       - name: Deploy to Cloud Run
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
           CLOUD_SQL_CONNECTION_NAME: ${{ vars.CLOUD_SQL_CONNECTION_NAME }}
           DB_DIALECT: ${{ vars.DB_DIALECT }}
           DB_USER: ${{ vars.DB_USER }}

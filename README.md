@@ -108,10 +108,10 @@ $MEMBER = "principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/
 gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_EMAIL --project $PROJECT_ID --role roles/iam.workloadIdentityUser --member $MEMBER
 
 Write-Output "GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER"
-Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
+Write-Output "GCP_SERVICE_ACCOUNT_EMAIL=$SERVICE_ACCOUNT_EMAIL"
 ```
 
-本番環境では、サービスアカウントのロールをプロジェクト全体に付与するのではなく、可能な限り対象リソースに絞ってください。特に Secret Manager Secret Accessor は、アプリ用パスワードのシークレットに対して付与するのが推奨です。
+本番環境では、サービスアカウントのロールをプロジェクト全体に付与するのではなく、可能な限り対象リソースに絞ってください。特に Secret Manager Secret Accessor は、アプリ用パスワードのシークレットに対して付与するのが推奨です。`roles/iam.serviceAccountUser` は、GitHub Actions のデプロイ用サービスアカウントに付与します。Cloud Run の実行用サービスアカウントに付与する権限ではありません。
 
 ### GitHub Actions の設定
 
@@ -128,9 +128,23 @@ Write-Output "GCP_SERVICE_ACCOUNT=$SERVICE_ACCOUNT_EMAIL"
 #### Secrets
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`
-- `GCP_SERVICE_ACCOUNT`: GitHub Actions と Cloud Run が使用するサービスアカウントのメールアドレス
+- `GCP_SERVICE_ACCOUNT_EMAIL`: GitHub Actions の認証と Cloud Run の実行に共用するサービスアカウントのメールアドレス
 
 Cloud Run の DB パスワードは GitHub に登録せず、Google Cloud Secret Manager の `applearning-db-password` に保存してください。
+
+Cloud Run のデプロイ時に `iam.serviceaccounts.actAs` エラーが出る場合は、`GCP_SERVICE_ACCOUNT_EMAIL` のサービスアカウント自身に Service Account User を付与します。たとえば PowerShell で次のように設定します。
+
+```powershell
+$PROJECT_ID = "あなたのプロジェクトID"
+$SERVICE_ACCOUNT_EMAIL = "GCP_SERVICE_ACCOUNT_EMAILに設定したメールアドレス"
+
+gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_EMAIL `
+  --project $PROJECT_ID `
+  --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" `
+  --role roles/iam.serviceAccountUser
+```
+
+認証に使うサービスアカウントと、Cloud Run の実行用サービスアカウントは同一にします。別々のアカウントに分ける場合は、デプロイ用アカウントに対し、実行用サービスアカウント上で `roles/iam.serviceAccountUser` を付与してください。エラーに表示される「認証されたアカウント」はデプロイ用、「service account」は実行用です。
 
 #### 任意の Variables
 
