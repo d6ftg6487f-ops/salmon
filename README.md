@@ -4,14 +4,20 @@
 
 ## ローカルで実行
 
-Python 3.12 以降を使い、依存関係をインストールして起動します。
+Python 3.12 と Node.js 24 を使い、依存関係とブラウザー用 JavaScript を準備して起動します。Node.js はビルド・検証にだけ使用し、アプリのサーバーは引き続き Flask / Gunicorn です。
 
 ```powershell
 python -m pip install -r requirements.txt
+npm ci
+npm run build
 python app.py
 ```
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
+
+自作ブラウザーコードは `src/bulb.ts`、`src/chat.ts`、`src/three-bulb.ts` を編集し、変更後に `npm run build` を実行してください。生成先は従来と同じ `static/*.js` の3ファイルで、Git 管理・手編集の対象にはしません。`bulb.js` と `chat.js` は従来どおり `defer` 付きの通常の script、`three-bulb.js` はブラウザー向け ESM です。CSS・画像・`static/vendor/` は生成物ではありません。
+
+TypeScript は `strict` を有効にし、同梱 Three.js r180 の型だけを `@types/three` で補います。ブラウザーが読み込む Three.js 本体・相対 import・ライセンスは `static/vendor/` のままです。Node.js は `.node-version`、CI、Docker ビルドで 24 系を使用し、npm の依存関係は `package-lock.json` で固定します。
 
 ## 豆電球チャット
 
@@ -34,21 +40,49 @@ Cloud Run は現在 unauthenticated (認証なし) で公開する設定です�
 
 ## 3D電球
 
-電球は Three.js でブラウザー上に描画します。ライブラリは `static/vendor/` に同梱しているため、実行時に外部CDNへの接続は不要です。WebGLを利用できない環境では、ページ内のSVG電球を表示します。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
+現在の画面の電球は HTML / CSS で描画しています。Three.js 用の `src/three-bulb.ts` は移行後も生成しますが、現在のテンプレートからは読み込まず、canvas 要素も追加していません。ライブラリは `static/vendor/` に同梱しており、実行時に外部 CDN への接続は不要です。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
 
 ## SQL
 
 データベース操作は `app.py` 内に SQL 文として記述しています。`bulb_state` テーブルに現在の点灯状態 (`is_on`) と累計押下回数 (`press_count`) を保存します。テーブル作成、初期行登録、状態取得、切り替え更新に使う SQL は `BulbDatabase` クラス内で確認できます。初期行の重複防止構文だけは PostgreSQL / SQLite と MySQL で異なります。
 
-テスト:
+## 検証
 
-```powershell
-python -m unittest discover -s tests
+Python の依存をインストールした環境で実行します。アプリ、Playwright の設定とテストをそれぞれ型検査し、生成・HTTP 配信された JavaScript を Chromium で検証します。
+
+```sh
+npm ci
+npm run typecheck
+npm run build
+env -u K_SERVICE -u CLOUD_SQL_CONNECTION_NAME -u GOOGLE_CLOUD_PROJECT \
+  DATABASE_URL=sqlite:///:memory: \
+  python -m unittest discover -s tests -v
+npx playwright install chromium
+npm run test:frontend
 ```
+
+Linux でブラウザーのシステム依存も必要な場合は `npx playwright install --with-deps chromium` を使用します。ブラウザーテストは専用サーバーを起動し、一時 SQLite ファイルとチャットの通信モックを使用します。実 Cloud SQL / Vertex AI には接続しません。仮想環境の Python を使う場合は、仮想環境を有効化するか `PYTHON=/path/to/python npm run test:frontend` を指定できます。
+
+### 本番イメージの検証
+
+Dockerfile の Node.js ステージが `npm ci --include=dev` とビルドを実行し、生成した3つの JavaScript を Python の最終イメージへコピーします。ローカル生成済み JS や `node_modules` はビルドコンテキストから除外するため、クリーンな checkout だけでイメージを作れます。起動時の npm インストールやビルドは不要です。
+
+```sh
+docker build --no-cache --progress=plain -t salmon-ts:verify .
+bash scripts/verify-container.sh salmon-ts:verify
+```
+
+検証スクリプトには、上の npm / Python 環境、Chromium、Docker、curl が必要です。ローカルの生成 JS とイメージからの配信内容を比較し、静的資産・API の応答・ブラウザー操作を確認します。検証用コンテナは localhost の空きポートで起動し、終了時にそのコンテナだけを削除します。既存の SQLite フォールバックを利用するため、この検証は実クラウド接続の確認ではありません。
+
+`.gcloudignore` は `.gitignore` を取り込み、TS ソース・型宣言・npm lockfile・tsconfig・Dockerfile をアップロードに残し、生成 JS・依存ディレクトリ・ローカル DB・認証ファイルを除外します。アップロード対象は、デプロイせずに `gcloud meta list-files-for-upload` で確認できます。
 
 ## GitHub Actions から Cloud Run にデプロイ
 
-`main` ブランチへの push で `.github/workflows/deploy.yml` が実行され、Cloud Run にデプロイされます。
+`.github/workflows/deploy.yml` の `validate` job は、`main` 宛ての PR、`main` への push、手動実行で同じコミットの型検査・既存 Python テスト・Docker ビルド・ブラウザーテストを実行します。PR では GitHub の合成マージ結果を検証します。クリーンな `git archive` に対して、認証不要の `gcloud meta list-files-for-upload` で送信対象を列挙し、そのファイルだけから Docker イメージをビルドします。ブラウザーテストはその最終イメージに対して実行します。
+
+PR の検証には Google Cloud の Secrets や OIDC 権限は不要です。フォークからの初回 PR などで workflow の実行承認が必要な場合は、upstream 管理者による承認を待ちます。
+
+`main` への push、または手動実行では、検証に成功した後にだけ `deploy` job が実行されます。OIDC の `id-token: write` はこの job に限定し、PR ではデプロイしません。従来の `gcloud run deploy --source .`、サービス名、リージョン、環境変数、Cloud SQL / VPC / Secret 設定を維持しており、TypeScript 移行のための新しいクラウド認証設定は不要です。
 
 ### Google Cloud の準備
 

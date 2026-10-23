@@ -1,12 +1,23 @@
-const toggleButton = document.querySelector("#toggle");
-const bulb = document.querySelector("#bulb");
-const statusText = document.querySelector("#status");
-const buttonLabel = document.querySelector("#button-label");
-const pressCount = document.querySelector("#count");
-const errorMessage = document.querySelector("#error");
-const scene = document.querySelector(".scene");
-const favicon = document.querySelector("#favicon");
-const themeColor = document.querySelector("#theme-color");
+interface ToggleResponse {
+  is_on: boolean;
+  press_count: number;
+}
+
+const toggleButton = document.querySelector<HTMLButtonElement>("#toggle");
+const bulb = document.querySelector<HTMLDivElement>("#bulb");
+const statusText = document.querySelector<HTMLParagraphElement>("#status");
+const buttonLabel = document.querySelector<HTMLSpanElement>("#button-label");
+const pressCount = document.querySelector<HTMLSpanElement>("#count");
+const errorMessage = document.querySelector<HTMLParagraphElement>("#error");
+const scene = document.querySelector<HTMLDivElement>(".scene");
+const favicon = document.querySelector<HTMLLinkElement>("#favicon");
+const themeColor = document.querySelector<HTMLMetaElement>("#theme-color");
+
+// All elements are required by templates/index.html and exist before this deferred script runs.
+if (!toggleButton || !bulb || !statusText || !buttonLabel || !pressCount ||
+    !errorMessage || !scene || !favicon || !themeColor) {
+  throw new Error("The bulb controls are missing from the page.");
+}
 
 toggleButton.addEventListener("click", async () => {
   toggleButton.disabled = true;
@@ -19,7 +30,9 @@ toggleButton.addEventListener("click", async () => {
       throw new Error(`Toggle request failed with status ${response.status}`);
     }
 
-    const state = await response.json();
+    // app.py returns Database.toggle() with this schema on a successful response.
+    // Keep the existing API behavior; do not add new rejection or coercion rules.
+    const state = await response.json() as ToggleResponse;
 
     document.body.classList.toggle("lights-on", state.is_on);
     bulb.classList.toggle("is-on", state.is_on);
@@ -31,10 +44,10 @@ toggleButton.addEventListener("click", async () => {
     statusText.setAttribute("aria-label", state.is_on ? "ついています" : "消えています");
 
     buttonLabel.textContent = state.is_on ? "消す" : "つける";
-    pressCount.textContent = state.press_count;
+    pressCount.textContent = String(state.press_count);
 
     // タブのアイコンとブラウザーのテーマ色も切り替える
-    favicon.href = state.is_on ? favicon.dataset.on : favicon.dataset.off;
+    favicon.href = String(state.is_on ? favicon.dataset.on : favicon.dataset.off);
     themeColor.content = state.is_on ? "#3a3029" : "#15181c";
   } catch (error) {
     console.error("豆電球の状態を更新できませんでした。", error);

@@ -84,7 +84,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
     const model = new THREE.Group();
     scene.add(model);
 
-    const glassProfile = [
+    const glassProfile = ([
       [0.34, -0.12],
       [0.39, -0.04],
       [0.43, 0.08],
@@ -100,7 +100,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
       [0.24, 2.055],
       [0.08, 2.09],
       [0, 2.1],
-    ].map(([radius, y]) => new THREE.Vector2(radius, y));
+    ] satisfies [number, number][]).map(([radius, y]) => new THREE.Vector2(radius, y));
     const smoothProfile = new THREE.SplineCurve(glassProfile).getPoints(96);
     const glassGeometry = new THREE.LatheGeometry(smoothProfile, 96);
 
@@ -169,7 +169,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
       roughness: 0.28,
     });
 
-    function addWire(points, radius, material) {
+    function addWire(points: [number, number, number][], radius: number, material: THREE.Material) {
       const curve = new THREE.CatmullRomCurve3(
         points.map(([x, y, z]) => new THREE.Vector3(x, y, z)),
       );
@@ -194,7 +194,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
     screwCore.position.y = -0.62;
     model.add(screwCore);
 
-    const threadPoints = [];
+    const threadPoints: [number, number, number][] = [];
     const threadTurns = 5.25;
     for (let index = 0; index <= threadTurns * 20; index += 1) {
       const progress = index / (threadTurns * 20);
@@ -248,7 +248,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
     addWire([[0.22, -0.14, 0], [0.18, 0.28, 0], [0.13, 0.55, 0]], 0.014, supportMaterial);
     addWire([[0, -0.12, 0], [0, 0.38, 0], [0, 0.58, 0]], 0.017, supportMaterial);
 
-    const coilPoints = [];
+    const coilPoints: [number, number, number][] = [];
     const coilTurns = 11;
     for (let index = 0; index <= coilTurns * 12; index += 1) {
       const progress = index / (coilTurns * 12);
@@ -304,7 +304,7 @@ if (host instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
     resize();
 
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const pointerMove = (event) => {
+    const pointerMove = (event: PointerEvent) => {
       if (motionPreference.matches) {
         return;
       }
