@@ -5,6 +5,4 @@ bulb.db
 venv/
 env/
 node_modules/
-/static/bulb.js
-/static/chat.js
-/static/three-bulb.js
+/static/*.js
