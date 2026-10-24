@@ -11,19 +11,46 @@ interface ChatErrorResponse {
   error?: string;
 }
 
-// These elements are part of templates/index.html, loaded before this deferred script.
-function requireChatElement<T extends Element>(selector: string): T {
-  const element = document.querySelector<T>(selector);
-  if (!element) {
-    throw new Error(`The chat control ${selector} is missing from the page.`);
+function requireChatElement<T extends Element>(
+  selector: string,
+  elementType: { new(): T },
+): T {
+  const element = document.querySelector(selector);
+  if (!(element instanceof elementType)) {
+    throw new Error(`The chat control ${selector} is missing or has an unexpected type.`);
   }
   return element;
 }
 
-const chatForm = requireChatElement<HTMLFormElement>("#chat-form");
-const chatInput = requireChatElement<HTMLInputElement>("#chat-input");
-const chatSend = requireChatElement<HTMLButtonElement>("#chat-send");
-const chatMessages = requireChatElement<HTMLDivElement>("#chat-messages");
+function isChatRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseChatSuccessResponse(value: unknown): ChatSuccessResponse {
+  if (!isChatRecord(value) || typeof value.answer !== "string") {
+    throw new Error("The chat response has an unexpected shape.");
+  }
+  return { answer: value.answer };
+}
+
+function parseChatErrorResponse(value: unknown): ChatErrorResponse {
+  if (!isChatRecord(value) || (value.error !== undefined && typeof value.error !== "string")) {
+    return {};
+  }
+  return { error: value.error };
+}
+
+function getChatErrorMessage(error: unknown): string | undefined {
+  if (!isChatRecord(error) || typeof error.message !== "string") {
+    return undefined;
+  }
+  return error.message;
+}
+
+const chatForm = requireChatElement("#chat-form", HTMLFormElement);
+const chatInput = requireChatElement("#chat-input", HTMLInputElement);
+const chatSend = requireChatElement("#chat-send", HTMLButtonElement);
+const chatMessages = requireChatElement("#chat-messages", HTMLDivElement);
 const conversation: ConversationEntry[] = [];
 
 function addMessage(role: "user" | "assistant", text: string) {
@@ -51,13 +78,11 @@ chatForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({ message, history: conversation.slice(-6) }),
     });
     const result: unknown = await response.json();
-    // app.py supplies error on failure and answer on success. The HTTP status
-    // selects that existing contract without adding new response validation.
     if (!response.ok) {
-      const failure = result as ChatErrorResponse;
+      const failure = parseChatErrorResponse(result);
       throw new Error(failure.error || `Chat request failed with status ${response.status}`);
     }
-    const success = result as ChatSuccessResponse;
+    const success = parseChatSuccessResponse(result);
 
     addMessage("assistant", success.answer);
     conversation.push(
@@ -67,10 +92,10 @@ chatForm.addEventListener("submit", async (event) => {
     if (conversation.length > 6) conversation.splice(0, conversation.length - 6);
   } catch (error: unknown) {
     console.error("チャットの回答を取得できませんでした。", error);
-    // Preserve the existing truthy .message fallback, including thrown objects.
-    const message = error !== null && (typeof error === "object" || typeof error === "function") &&
-      "message" in error ? error.message : undefined;
-    addMessage("assistant", String(message || "回答を取得できませんでした。少し待ってからお試しください。"));
+    addMessage(
+      "assistant",
+      getChatErrorMessage(error) || "回答を取得できませんでした。少し待ってからお試しください。",
+    );
   } finally {
     chatInput.disabled = false;
     chatSend.disabled = false;

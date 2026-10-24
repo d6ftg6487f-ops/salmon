@@ -1,11 +1,6 @@
 __pycache__/
 *.py[cod]
-*.db
-*.sqlite
-*.sqlite3
-*.db-journal
-*.db-shm
-*.db-wal
+bulb.db
 .venv/
 venv/
 env/
@@ -13,9 +8,3 @@ node_modules/
 /static/bulb.js
 /static/chat.js
 /static/three-bulb.js
-/test-results/
-/playwright-report/
-.env
-.env.*
-gha-creds-*.json
-application_default_credentials.json

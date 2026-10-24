@@ -3,20 +3,46 @@ interface ToggleResponse {
   press_count: number;
 }
 
-const toggleButton = document.querySelector<HTMLButtonElement>("#toggle");
-const bulb = document.querySelector<HTMLDivElement>("#bulb");
-const statusText = document.querySelector<HTMLParagraphElement>("#status");
-const buttonLabel = document.querySelector<HTMLSpanElement>("#button-label");
-const pressCount = document.querySelector<HTMLSpanElement>("#count");
-const errorMessage = document.querySelector<HTMLParagraphElement>("#error");
-const scene = document.querySelector<HTMLDivElement>(".scene");
-const favicon = document.querySelector<HTMLLinkElement>("#favicon");
-const themeColor = document.querySelector<HTMLMetaElement>("#theme-color");
+function requireBulbElement<T extends Element>(
+  selector: string,
+  elementType: { new(): T },
+): T {
+  const element = document.querySelector(selector);
+  if (!(element instanceof elementType)) {
+    throw new Error(`The bulb control ${selector} is missing or has an unexpected type.`);
+  }
+  return element;
+}
 
-// All elements are required by templates/index.html and exist before this deferred script runs.
-if (!toggleButton || !bulb || !statusText || !buttonLabel || !pressCount ||
-    !errorMessage || !scene || !favicon || !themeColor) {
-  throw new Error("The bulb controls are missing from the page.");
+function isToggleRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseToggleResponse(value: unknown): ToggleResponse {
+  if (!isToggleRecord(value)) {
+    throw new Error("The toggle response is not an object.");
+  }
+
+  const { is_on: isOn, press_count: pressCount } = value;
+  if (typeof isOn !== "boolean" || typeof pressCount !== "number") {
+    throw new Error("The toggle response has an unexpected shape.");
+  }
+  return { is_on: isOn, press_count: pressCount };
+}
+
+const toggleButton = requireBulbElement("#toggle", HTMLButtonElement);
+const bulb = requireBulbElement("#bulb", HTMLDivElement);
+const statusText = requireBulbElement("#status", HTMLParagraphElement);
+const buttonLabel = requireBulbElement("#button-label", HTMLSpanElement);
+const pressCount = requireBulbElement("#count", HTMLSpanElement);
+const errorMessage = requireBulbElement("#error", HTMLParagraphElement);
+const scene = requireBulbElement(".scene", HTMLDivElement);
+const favicon = requireBulbElement("#favicon", HTMLLinkElement);
+const themeColor = requireBulbElement("#theme-color", HTMLMetaElement);
+const faviconOn = favicon.dataset.on;
+const faviconOff = favicon.dataset.off;
+if (!faviconOn || !faviconOff) {
+  throw new Error("The favicon URLs are missing from the page.");
 }
 
 toggleButton.addEventListener("click", async () => {
@@ -30,9 +56,7 @@ toggleButton.addEventListener("click", async () => {
       throw new Error(`Toggle request failed with status ${response.status}`);
     }
 
-    // app.py returns Database.toggle() with this schema on a successful response.
-    // Keep the existing API behavior; do not add new rejection or coercion rules.
-    const state = await response.json() as ToggleResponse;
+    const state = parseToggleResponse(await response.json());
 
     document.body.classList.toggle("lights-on", state.is_on);
     bulb.classList.toggle("is-on", state.is_on);
@@ -47,7 +71,7 @@ toggleButton.addEventListener("click", async () => {
     pressCount.textContent = String(state.press_count);
 
     // タブのアイコンとブラウザーのテーマ色も切り替える
-    favicon.href = String(state.is_on ? favicon.dataset.on : favicon.dataset.off);
+    favicon.href = state.is_on ? faviconOn : faviconOff;
     themeColor.content = state.is_on ? "#3a3029" : "#15181c";
   } catch (error) {
     console.error("豆電球の状態を更新できませんでした。", error);
