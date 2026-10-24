@@ -5,6 +5,4 @@ __pycache__
 .venv
 venv
 node_modules
-static/bulb.js
-static/chat.js
-static/three-bulb.js
+static/*.js
