@@ -4,14 +4,20 @@
 
 ## ローカルで実行
 
-Python 3.12 以降を使い、依存関係をインストールして起動します。
+Python 3.12 と Node.js 24 を使い、依存関係とブラウザー用 JavaScript を準備して起動します。Node.js はビルドにだけ使用し、アプリのサーバーは引き続き Flask / Gunicorn です。
 
 ```powershell
 python -m pip install -r requirements.txt
+npm ci
+npm run build
 python app.py
 ```
 
 Cloud SQL の接続情報を設定しない場合は、ローカルの `bulb.db` (SQLite) に保存します。
+
+自作ブラウザーコードは `src/bulb.ts`、`src/chat.ts`、`src/three-bulb.ts` を編集し、変更後に `npm run build` を実行してください。生成先は従来と同じ `static/*.js` の3ファイルで、Git 管理・手編集の対象にはしません。`bulb.js` と `chat.js` は従来どおり `defer` 付きの通常の script、`three-bulb.js` はブラウザー向け ESM です。CSS・画像・`static/vendor/` は生成物ではありません。
+
+TypeScript は `strict` を有効にし、同梱 Three.js r180 の型を `@types/three` で補います。ブラウザーが読み込む Three.js 本体・相対 import・ライセンスは `static/vendor/` のままです。
 
 ## 豆電球チャット
 

@@ -4,3 +4,5 @@ bulb.db
 .venv/
 venv/
 env/
+node_modules/
+/static/*.js

@@ -1,0 +1,5 @@
+# Send TypeScript build inputs; generate JavaScript inside Docker.
+.gcloudignore
+.git
+.gitignore
+#!include:.gitignore
