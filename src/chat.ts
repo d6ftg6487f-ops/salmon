@@ -68,10 +68,8 @@ chatForm.addEventListener("submit", async (event) => {
 
   chatInput.disabled = true;
   chatSend.disabled = true;
-  let captchaToken: string | undefined;
 
   try {
-    captchaToken = await window.getRecaptchaToken("CHAT");
     addMessage("user", message);
     chatInput.value = "";
     const response = await fetch("/api/chat", {
@@ -80,7 +78,6 @@ chatForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         message,
         history: conversation.slice(-6),
-        recaptcha_token: captchaToken,
       }),
     });
     const result: unknown = await response.json();
@@ -98,13 +95,11 @@ chatForm.addEventListener("submit", async (event) => {
     if (conversation.length > 6) conversation.splice(0, conversation.length - 6);
   } catch (error: unknown) {
     console.error("チャットの回答を取得できませんでした。", error);
-    if (!captchaToken) chatInput.value = message;
     addMessage(
       "assistant",
       getChatErrorMessage(error) || "回答を取得できませんでした。少し待ってからお試しください。",
     );
   } finally {
-    if (captchaToken) window.resetRecaptcha("CHAT");
     chatInput.disabled = false;
     chatSend.disabled = false;
     chatInput.focus();

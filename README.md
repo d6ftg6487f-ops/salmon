@@ -40,9 +40,11 @@ Cloud Run は現在 unauthenticated (認証なし) で公開する設定です�
 
 ## reCAPTCHA Enterprise
 
-チャット送信と電球の切り替えには reCAPTCHA Enterprise のチェックボックスを表示し、サーバー側でトークンの有効性と操作名 (`CHAT` / `TOGGLE`) を検証します。トークンは1回の操作にだけ使えるため、操作ごとに該当するチェックボックスを完了してください。
+サイトを開く前に reCAPTCHA Enterprise の確認を1回行います。確認に成功するとブラウザーセッション中はチャットと電球を利用でき、チャット送信や電球の切り替え時に再度 CAPTCHA を求められることはありません。サーバーもセッションを確認し、確認を通過していない API 操作を拒否します。
 
 Google Cloud プロジェクトで reCAPTCHA Enterprise API (`recaptchaenterprise.googleapis.com`) を有効にし、HTML に設定したサイトキーにアプリのホスト名を登録してください。`RECAPTCHA_SITE_KEY` 環境変数でサイトキーを変更できます。評価に使うプロジェクトIDは `RECAPTCHA_PROJECT_ID`、省略時は `GOOGLE_CLOUD_PROJECT` です。サーバーは ADC を使うため、ローカル実行時は `gcloud auth application-default login` を行い、実行サービスアカウントには reCAPTCHA Enterprise Agent (`roles/recaptchaenterprise.agent`) を付与してください。
+
+セッション署名用の `FLASK_SECRET_KEY` には十分にランダムな秘密値を設定してください。Cloud Run では Secret Manager の `applearning-flask-secret` をデプロイ時に読み込みます。ローカルで省略した場合はプロセス起動ごとに一時キーを生成するため、サーバー再起動後は再確認が必要です。
 
 ## 3D電球
 
@@ -75,6 +77,7 @@ python -m unittest discover -s tests
 2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
    - プライベートIPのみを使う場合、Cloud Run はインスタンスのプライベートIPと同じVPCネットワークへ接続できる必要があります。このリポジトリのデプロイ設定は `default` VPC の `default` サブネットからプライベートレンジへ egress します。
 3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
+   - `applearning-flask-secret` という名前のシークレットも作成し、`FLASK_SECRET_KEY` 用のランダムな秘密値を登録します。たとえば `python -c "import secrets; print(secrets.token_urlsafe(48))"` で値を生成できます。
 4. GitHub Actions 用の Workload Identity Federation とサービスアカウントを作成します。サービスアカウントには以下のロールが必要です。
    - Cloud Run Admin (`roles/run.admin`)
    - Service Account User (`roles/iam.serviceAccountUser`)

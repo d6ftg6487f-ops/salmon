@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#15181c">
+    <title>豆電球 | 入場確認</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        window.recaptchaEnterpriseReady = new Promise((resolve, reject) => {
+            window.onRecaptchaEnterpriseLoad = resolve;
+            window.onRecaptchaEnterpriseError = () => reject(
+                new Error("reCAPTCHA Enterprise could not be loaded.")
+            );
+        });
+    </script>
+    <script
+        src="https://www.google.com/recaptcha/enterprise.js?onload=onRecaptchaEnterpriseLoad&amp;render=explicit"
+        async
+        defer
+        onerror="window.onRecaptchaEnterpriseError()"
+    ></script>
+</head>
+<body class="entry-body">
+    <main class="entry-card">
+        <p class="eyebrow">A LITTLE LIGHT IN THE CORNER</p>
+        <h1>豆電球</h1>
+        <p class="entry-card__message">サイトに入る前に確認してください。</p>
+        <form id="site-entry-form">
+            <div
+                id="site-entry-captcha"
+                data-sitekey="{{ recaptcha_site_key }}"
+            ></div>
+            <button class="entry-card__submit" id="site-entry-submit" type="submit">
+                サイトに入る
+            </button>
+        </form>
+        <p class="entry-card__error" id="site-entry-error" role="alert" hidden></p>
+    </main>
+    <script src="{{ url_for('static', filename='recaptcha.js') }}" defer></script>
+</body>
+</html>

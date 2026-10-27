@@ -21,20 +21,6 @@
     >
 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <script>
-        window.recaptchaEnterpriseReady = new Promise((resolve, reject) => {
-            window.onRecaptchaEnterpriseLoad = resolve;
-            window.onRecaptchaEnterpriseError = () => reject(
-                new Error("reCAPTCHA Enterprise could not be loaded.")
-            );
-        });
-    </script>
-    <script
-        src="https://www.google.com/recaptcha/enterprise.js?onload=onRecaptchaEnterpriseLoad&amp;render=explicit"
-        async
-        defer
-        onerror="window.onRecaptchaEnterpriseError()"
-    ></script>
 </head>
 
 <body class="{% if state.is_on %}lights-on{% endif %}">
@@ -83,14 +69,6 @@
                     豆電球の使い方や、このアプリについて質問できます。
                 </p>
             </div>
-            <div class="chat__captcha">
-                <p class="captcha__label">送信前に確認してください</p>
-                <div
-                    class="g-recaptcha"
-                    data-action="CHAT"
-                    data-sitekey="{{ recaptcha_site_key }}"
-                ></div>
-            </div>
             <form class="chat__form" id="chat-form">
                 <label class="visually-hidden" for="chat-input">質問</label>
                 <input
@@ -123,23 +101,15 @@
                     </p>
                 </div>
 
-                <div class="toggle-actions">
-                    <p class="captcha__label">操作前に確認してください</p>
-                    <div
-                        class="g-recaptcha"
-                        data-action="TOGGLE"
-                        data-sitekey="{{ recaptcha_site_key }}"
-                    ></div>
-                    <button
-                        class="toggle"
-                        id="toggle"
-                        type="button"
-                        aria-pressed="{{ 'true' if state.is_on else 'false' }}"
-                    >
-                        <span class="toggle__icon" aria-hidden="true"></span>
-                        <span id="button-label">{% if state.is_on %}消す{% else %}つける{% endif %}</span>
-                    </button>
-                </div>
+                <button
+                    class="toggle"
+                    id="toggle"
+                    type="button"
+                    aria-pressed="{{ 'true' if state.is_on else 'false' }}"
+                >
+                    <span class="toggle__icon" aria-hidden="true"></span>
+                    <span id="button-label">{% if state.is_on %}消す{% else %}つける{% endif %}</span>
+                </button>
             </div>
 
             <p class="error" id="error" role="alert" hidden>
@@ -148,7 +118,6 @@
         </section>
     </main>
 
-    <script src="{{ url_for('static', filename='recaptcha.js') }}" defer></script>
     <script src="{{ url_for('static', filename='bulb.js') }}" defer></script>
     <script src="{{ url_for('static', filename='chat.js') }}" defer></script>
 </body>

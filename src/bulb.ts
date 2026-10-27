@@ -30,13 +30,6 @@ function parseToggleResponse(value: unknown): ToggleResponse {
   return { is_on: isOn, press_count: pressCount };
 }
 
-function getToggleErrorMessage(value: unknown): string | undefined {
-  if (!isToggleRecord(value) || typeof value.error !== "string") {
-    return undefined;
-  }
-  return value.error;
-}
-
 const toggleButton = requireBulbElement("#toggle", HTMLButtonElement);
 const bulb = requireBulbElement("#bulb", HTMLDivElement);
 const statusText = requireBulbElement("#status", HTMLParagraphElement);
@@ -55,23 +48,15 @@ if (!faviconOn || !faviconOff) {
 toggleButton.addEventListener("click", async () => {
   toggleButton.disabled = true;
   errorMessage.hidden = true;
-  let captchaToken: string | undefined;
 
   try {
-    captchaToken = await window.getRecaptchaToken("TOGGLE");
-    const response = await fetch("/api/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recaptcha_token: captchaToken }),
-    });
+    const response = await fetch("/api/toggle", { method: "POST" });
 
-    const result: unknown = await response.json();
     if (!response.ok) {
-      const errorMessage = getToggleErrorMessage(result);
-      throw new Error(errorMessage || `Toggle request failed with status ${response.status}`);
+      throw new Error(`Toggle request failed with status ${response.status}`);
     }
 
-    const state = parseToggleResponse(result);
+    const state = parseToggleResponse(await response.json());
 
     document.body.classList.toggle("lights-on", state.is_on);
     bulb.classList.toggle("is-on", state.is_on);
@@ -90,12 +75,8 @@ toggleButton.addEventListener("click", async () => {
     themeColor.content = state.is_on ? "#3a3029" : "#15181c";
   } catch (error) {
     console.error("豆電球の状態を更新できませんでした。", error);
-    errorMessage.textContent = error instanceof Error
-      ? error.message
-      : "保存できませんでした。少し待ってからもう一度押してください。";
     errorMessage.hidden = false;
   } finally {
-    if (captchaToken) window.resetRecaptcha("TOGGLE");
     toggleButton.disabled = false;
   }
 });

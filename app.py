@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from sqlalchemy import create_engine, text
 
 
@@ -134,7 +134,12 @@ class BulbDatabase:
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    secret_key = os.environ.get("FLASK_SECRET_KEY")
+    if not secret_key and os.environ.get("K_SERVICE"):
+        raise RuntimeError("FLASK_SECRET_KEY must be configured on Cloud Run.")
+
     app.config.from_mapping(
+        SECRET_KEY=secret_key or os.urandom(32),
         DATABASE_URL=os.environ.get("DATABASE_URL"),
         CLOUD_SQL_CONNECTION_NAME=os.environ.get("CLOUD_SQL_CONNECTION_NAME"),
         DB_DIALECT=os.environ.get("DB_DIALECT", "postgres"),
@@ -154,16 +159,12 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
+    app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+    app.config.setdefault("SESSION_COOKIE_SECURE", bool(os.environ.get("K_SERVICE")))
+
     database = BulbDatabase(app.config)
     app.extensions["bulb_database"] = database
-
-    @app.get("/")
-    def index():
-        return render_template(
-            "index.html",
-            state=database.get_state(),
-            recaptcha_site_key=app.config["RECAPTCHA_SITE_KEY"],
-        )
 
     def recaptcha_error(token, expected_action):
         if not isinstance(token, str) or not token:
@@ -215,18 +216,36 @@ def create_app(test_config=None):
             return "reCAPTCHA の確認に失敗しました。もう一度お試しください。", 403
         return None
 
-    @app.post("/api/toggle")
-    def toggle():
+    @app.get("/")
+    def index():
+        if not session.get("site_verified"):
+            return render_template(
+                "entry.html",
+                recaptcha_site_key=app.config["RECAPTCHA_SITE_KEY"],
+            )
+        return render_template("index.html", state=database.get_state())
+
+    @app.post("/api/site-entry")
+    def site_entry():
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return jsonify(error="JSON形式で送信してください。"), 400
-        error = recaptcha_error(data.get("recaptcha_token"), "TOGGLE")
+        error = recaptcha_error(data.get("recaptcha_token"), "SITE_ENTRY")
         if error:
             return jsonify(error=error[0]), error[1]
+        session["site_verified"] = True
+        return jsonify(success=True)
+
+    @app.post("/api/toggle")
+    def toggle():
+        if not session.get("site_verified"):
+            return jsonify(error="サイトに入る前に reCAPTCHA を完了してください。"), 403
         return jsonify(database.toggle())
 
     @app.post("/api/chat")
     def chat():
+        if not session.get("site_verified"):
+            return jsonify(error="サイトに入る前に reCAPTCHA を完了してください。"), 403
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return jsonify(error="JSON形式で送信してください。"), 400
@@ -237,10 +256,6 @@ def create_app(test_config=None):
             return jsonify(error="質問は1〜1000文字で入力してください。"), 400
         if not isinstance(history, list) or len(history) > 6:
             return jsonify(error="会話履歴の形式が正しくありません。"), 400
-
-        error = recaptcha_error(data.get("recaptcha_token"), "CHAT")
-        if error:
-            return jsonify(error=error[0]), error[1]
 
         contents = []
         for entry in history:
