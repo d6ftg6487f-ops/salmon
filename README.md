@@ -44,7 +44,7 @@ Cloud Run は現在 unauthenticated (認証なし) で公開する設定です�
 
 Google Cloud プロジェクトで reCAPTCHA Enterprise API (`recaptchaenterprise.googleapis.com`) を有効にし、HTML に設定したサイトキーにアプリのホスト名を登録してください。`RECAPTCHA_SITE_KEY` 環境変数でサイトキーを変更できます。評価に使うプロジェクトIDは `RECAPTCHA_PROJECT_ID`、省略時は `GOOGLE_CLOUD_PROJECT` です。サーバーは ADC を使うため、ローカル実行時は `gcloud auth application-default login` を行い、実行サービスアカウントには reCAPTCHA Enterprise Agent (`roles/recaptchaenterprise.agent`) を付与してください。
 
-セッション署名用の `FLASK_SECRET_KEY` には十分にランダムな秘密値を設定してください。Cloud Run では Secret Manager の `applearning-flask-secret` をデプロイ時に読み込みます。ローカルで省略した場合はプロセス起動ごとに一時キーを生成するため、サーバー再起動後は再確認が必要です。
+セッション署名用のキーは、`FLASK_SECRET_KEY` が指定されていればそれを使います。省略した場合、Cloud Run では既存の `DB_PASSWORD` から用途を分けて安定した署名キーを導出するため、追加の Secret Manager シークレットは不要です。ローカルで両方を省略した場合はプロセス起動ごとに一時キーを生成するため、サーバー再起動後は再確認が必要です。
 
 ## 3D電球
 
@@ -77,7 +77,6 @@ python -m unittest discover -s tests
 2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
    - プライベートIPのみを使う場合、Cloud Run はインスタンスのプライベートIPと同じVPCネットワークへ接続できる必要があります。このリポジトリのデプロイ設定は `default` VPC の `default` サブネットからプライベートレンジへ egress します。
 3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
-   - `applearning-flask-secret` という名前のシークレットも作成し、`FLASK_SECRET_KEY` 用のランダムな秘密値を登録します。たとえば `python -c "import secrets; print(secrets.token_urlsafe(48))"` で値を生成できます。
 4. GitHub Actions 用の Workload Identity Federation とサービスアカウントを作成します。サービスアカウントには以下のロールが必要です。
    - Cloud Run Admin (`roles/run.admin`)
    - Service Account User (`roles/iam.serviceAccountUser`)

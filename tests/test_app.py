@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from app import create_app
 
@@ -77,6 +78,32 @@ class BulbAppTests(unittest.TestCase):
             {"is_on": False, "press_count": 0},
         )
         self.assertEqual(self.recaptcha_client.requests, [])
+
+    def test_cloud_run_session_key_is_derived_from_existing_db_secret(self):
+        with patch.dict(
+            "os.environ",
+            {"K_SERVICE": "test", "DB_PASSWORD": "stable-db-password", "FLASK_SECRET_KEY": ""},
+        ):
+            first_app = create_app({"DATABASE_URL": "sqlite:///:memory:"})
+            second_app = create_app({"DATABASE_URL": "sqlite:///:memory:"})
+            try:
+                self.assertTrue(first_app.config["SESSION_COOKIE_SECURE"])
+                self.assertEqual(
+                    first_app.config["SECRET_KEY"],
+                    second_app.config["SECRET_KEY"],
+                )
+                self.assertTrue(first_app.config["SECRET_KEY"])
+            finally:
+                first_app.extensions["bulb_database"].engine.dispose()
+                second_app.extensions["bulb_database"].engine.dispose()
+
+    def test_cloud_run_requires_a_stable_session_secret(self):
+        with patch.dict(
+            "os.environ",
+            {"K_SERVICE": "test", "DB_PASSWORD": "", "FLASK_SECRET_KEY": ""},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "FLASK_SECRET_KEY or DB_PASSWORD"):
+                create_app({"DATABASE_URL": "sqlite:///:memory:"})
 
     def test_toggle_updates_and_persists_state_after_single_site_check(self):
         self.assertEqual(self.enter_site().status_code, 200)

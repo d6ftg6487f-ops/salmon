@@ -72,4 +72,4 @@ jobs:
             --allow-unauthenticated \
             --add-cloudsql-instances "$CLOUD_SQL_CONNECTION_NAME" \
             --env-vars-file "$RUNNER_TEMP/cloud-run-env.json" \
-            --set-secrets "DB_PASSWORD=applearning-db-password:latest,FLASK_SECRET_KEY=applearning-flask-secret:latest"
+            --set-secrets "DB_PASSWORD=applearning-db-password:latest"

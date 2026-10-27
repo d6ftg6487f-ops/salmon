@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import os
 
 from flask import Flask, jsonify, render_template, request, session
@@ -134,12 +136,8 @@ class BulbDatabase:
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    secret_key = os.environ.get("FLASK_SECRET_KEY")
-    if not secret_key and os.environ.get("K_SERVICE"):
-        raise RuntimeError("FLASK_SECRET_KEY must be configured on Cloud Run.")
-
     app.config.from_mapping(
-        SECRET_KEY=secret_key or os.urandom(32),
+        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY"),
         DATABASE_URL=os.environ.get("DATABASE_URL"),
         CLOUD_SQL_CONNECTION_NAME=os.environ.get("CLOUD_SQL_CONNECTION_NAME"),
         DB_DIALECT=os.environ.get("DB_DIALECT", "postgres"),
@@ -159,9 +157,25 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    if not app.config["SECRET_KEY"]:
+        database_password = app.config.get("DB_PASSWORD")
+        if database_password:
+            app.config["SECRET_KEY"] = hmac.new(
+                database_password.encode("utf-8"),
+                b"applearning-flask-session-v1",
+                hashlib.sha256,
+            ).hexdigest()
+        elif os.environ.get("K_SERVICE"):
+            raise RuntimeError(
+                "FLASK_SECRET_KEY or DB_PASSWORD must be configured on Cloud Run."
+            )
+        else:
+            app.config["SECRET_KEY"] = os.urandom(32)
+
     app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
     app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
-    app.config.setdefault("SESSION_COOKIE_SECURE", bool(os.environ.get("K_SERVICE")))
+    if not test_config or "SESSION_COOKIE_SECURE" not in test_config:
+        app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("K_SERVICE"))
 
     database = BulbDatabase(app.config)
     app.extensions["bulb_database"] = database
