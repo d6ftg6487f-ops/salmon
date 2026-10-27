@@ -49,7 +49,10 @@ class BulbAppTests(unittest.TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("サイトに入る前に確認してください".encode(), response.data)
+        self.assertIn(
+            "下のチェックボックスで確認を完了してから".encode(),
+            response.data,
+        )
         self.assertIn("enterprise.js".encode(), response.data)
         self.assertIn('id="site-entry-captcha"'.encode(), response.data)
         self.assertIn("recaptcha.js".encode(), response.data)
@@ -260,7 +263,7 @@ class BulbAppTests(unittest.TestCase):
             )
             self.assertEqual(response.status_code, 403)
             self.assertIn(
-                "サイトに入る前に確認してください".encode(),
+                "下のチェックボックスで確認を完了してから".encode(),
                 invalid_client.get("/").data,
             )
         finally:
