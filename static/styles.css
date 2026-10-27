@@ -514,6 +514,16 @@ body.lights-on h1 {
   font-size: 10px;
 }
 
+.chat__captcha {
+  min-height: 158px;
+}
+
+.captcha__label {
+  margin: 0 0 6px;
+  color: #9da5ad;
+  font-size: 10px;
+}
+
 .controls {
   position: absolute;
   left: clamp(20px, 5vw, 56px);
@@ -523,6 +533,14 @@ body.lights-on h1 {
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
+}
+
+.toggle-actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .readout {

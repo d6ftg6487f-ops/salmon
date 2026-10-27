@@ -38,6 +38,12 @@ python app.py
 
 Cloud Run は現在 unauthenticated (認証なし) で公開する設定です。上記の制限は1リクエストあたりの上限で、月間の利用総額を止めるものではありません。公開利用の前に認証やレート制限を追加してください。まず試すだけならローカルで動かしてください。
 
+## reCAPTCHA Enterprise
+
+チャット送信と電球の切り替えには reCAPTCHA Enterprise のチェックボックスを表示し、サーバー側でトークンの有効性と操作名 (`CHAT` / `TOGGLE`) を検証します。トークンは1回の操作にだけ使えるため、操作ごとに該当するチェックボックスを完了してください。
+
+Google Cloud プロジェクトで reCAPTCHA Enterprise API (`recaptchaenterprise.googleapis.com`) を有効にし、HTML に設定したサイトキーにアプリのホスト名を登録してください。`RECAPTCHA_SITE_KEY` 環境変数でサイトキーを変更できます。評価に使うプロジェクトIDは `RECAPTCHA_PROJECT_ID`、省略時は `GOOGLE_CLOUD_PROJECT` です。サーバーは ADC を使うため、ローカル実行時は `gcloud auth application-default login` を行い、実行サービスアカウントには reCAPTCHA Enterprise Agent (`roles/recaptchaenterprise.agent`) を付与してください。
+
 ## 3D電球
 
 電球は Three.js でブラウザー上に描画します。ライブラリは `static/vendor/` に同梱しているため、実行時に外部CDNへの接続は不要です。WebGLを利用できない環境では、ページ内のSVG電球を表示します。Three.js は MIT License で、ライセンス文を `static/vendor/THREE-LICENSE.txt` に含めています。
@@ -65,6 +71,7 @@ python -m unittest discover -s tests
    - Cloud SQL Admin API
    - Secret Manager API
    - Vertex AI API
+   - reCAPTCHA Enterprise API
 2. Cloud SQL インスタンスを作成し、その中にデータベースとアプリ用ユーザーを作成します。PostgreSQL または MySQL を使用できます。
    - プライベートIPのみを使う場合、Cloud Run はインスタンスのプライベートIPと同じVPCネットワークへ接続できる必要があります。このリポジトリのデプロイ設定は `default` VPC の `default` サブネットからプライベートレンジへ egress します。
 3. Secret Manager に `applearning-db-password` という名前のシークレットを作成し、アプリ用ユーザーのパスワードを登録します。
@@ -77,6 +84,7 @@ python -m unittest discover -s tests
    - Cloud SQL Client (`roles/cloudsql.client`)
    - Secret Manager Secret Accessor (`roles/secretmanager.secretAccessor`)
    - Vertex AI User (`roles/aiplatform.user`) — Cloud Run の実行サービスアカウントに付与
+   - reCAPTCHA Enterprise Agent (`roles/recaptchaenterprise.agent`) — Cloud Run の実行サービスアカウントに付与
 
 ### Workload Identity Federation の設定例
 
@@ -91,7 +99,7 @@ $PROVIDER_ID = "github"
 $SERVICE_ACCOUNT = "github-actions"
 
 gcloud config set project $PROJECT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com recaptchaenterprise.googleapis.com
 
 gcloud iam service-accounts create $SERVICE_ACCOUNT --project $PROJECT_ID
 $SERVICE_ACCOUNT_EMAIL = "$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com"
@@ -104,6 +112,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SER
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/cloudsql.client
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/secretmanager.secretAccessor
 gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/aiplatform.user
+gcloud projects add-iam-policy-binding $PROJECT_ID --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role roles/recaptchaenterprise.agent
 
 gcloud iam workload-identity-pools create $POOL_ID --project $PROJECT_ID --location global --display-name "GitHub Actions"
 gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID --project $PROJECT_ID --location global --workload-identity-pool $POOL_ID --display-name "GitHub" --issuer-uri "https://token.actions.githubusercontent.com" --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" --attribute-condition "assertion.repository == '$GITHUB_REPO'"
@@ -157,4 +166,4 @@ gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_EMAIL `
 - `GEMINI_MODEL`: Vertex AI のモデル ID (省略時 `gemini-3.1-flash-lite`)
 - `VERTEX_AI_LOCATION`: Vertex AI のリージョン/エンドポイント (省略時 `global`)
 
-Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。Cloud SQL Connector はプライベートIPを使う設定です。Cloud Run の実行サービスアカウントには Cloud SQL Client (`roles/cloudsql.client`) と Vertex AI User (`roles/aiplatform.user`) を付与してください。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。
+Cloud Run のリージョンは `.github/workflows/deploy.yml` の `REGION` で設定します。Cloud SQL Connector はプライベートIPを使う設定です。Cloud Run の実行サービスアカウントには Cloud SQL Client (`roles/cloudsql.client`)、Vertex AI User (`roles/aiplatform.user`)、reCAPTCHA Enterprise Agent (`roles/recaptchaenterprise.agent`) を付与してください。初回デプロイ後、Cloud Run が発行する URL を開いて確認します。

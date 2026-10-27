@@ -142,6 +142,12 @@ def create_app(test_config=None):
         DB_PASSWORD=os.environ.get("DB_PASSWORD"),
         DB_NAME=os.environ.get("DB_NAME"),
         GOOGLE_CLOUD_PROJECT=os.environ.get("GOOGLE_CLOUD_PROJECT"),
+        RECAPTCHA_PROJECT_ID=os.environ.get(
+            "RECAPTCHA_PROJECT_ID", os.environ.get("GOOGLE_CLOUD_PROJECT")
+        ),
+        RECAPTCHA_SITE_KEY=os.environ.get(
+            "RECAPTCHA_SITE_KEY", "6LcVAwMuAAAAAJuLWP3c9Hv62R__7hxkJAy7lYWf"
+        ),
         VERTEX_AI_LOCATION=os.environ.get("VERTEX_AI_LOCATION", "global"),
         GEMINI_MODEL=os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite"),
     )
@@ -153,10 +159,70 @@ def create_app(test_config=None):
 
     @app.get("/")
     def index():
-        return render_template("index.html", state=database.get_state())
+        return render_template(
+            "index.html",
+            state=database.get_state(),
+            recaptcha_site_key=app.config["RECAPTCHA_SITE_KEY"],
+        )
+
+    def recaptcha_error(token, expected_action):
+        if not isinstance(token, str) or not token:
+            return "reCAPTCHA の確認を完了してください。", 400
+
+        project_id = app.config.get("RECAPTCHA_PROJECT_ID")
+        if not project_id:
+            app.logger.error("RECAPTCHA_PROJECT_ID is not configured.")
+            return "reCAPTCHA の設定が完了していません。", 503
+
+        from google.api_core.exceptions import GoogleAPICallError
+        from google.auth.exceptions import GoogleAuthError
+        from google.cloud import recaptchaenterprise_v1
+
+        client = app.config.get("RECAPTCHA_CLIENT")
+        if client is None:
+            client = app.extensions.get("recaptcha_client")
+
+        try:
+            if client is None:
+                client = recaptchaenterprise_v1.RecaptchaEnterpriseServiceClient()
+                app.extensions["recaptcha_client"] = client
+
+            assessment = client.create_assessment(
+                request=recaptchaenterprise_v1.CreateAssessmentRequest(
+                    parent=f"projects/{project_id}",
+                    assessment=recaptchaenterprise_v1.Assessment(
+                        event=recaptchaenterprise_v1.Event(
+                            token=token,
+                            site_key=app.config["RECAPTCHA_SITE_KEY"],
+                            expected_action=expected_action,
+                        )
+                    ),
+                )
+            )
+        except (GoogleAPICallError, GoogleAuthError):
+            app.logger.exception("reCAPTCHA Enterprise assessment failed.")
+            return "reCAPTCHA の確認に失敗しました。少し待ってからお試しください。", 503
+
+        token_properties = assessment.token_properties
+        if not token_properties.valid:
+            app.logger.warning(
+                "reCAPTCHA token rejected: %s",
+                token_properties.invalid_reason,
+            )
+            return "reCAPTCHA の確認に失敗しました。もう一度お試しください。", 403
+        if token_properties.action != expected_action:
+            app.logger.warning("reCAPTCHA action did not match %s.", expected_action)
+            return "reCAPTCHA の確認に失敗しました。もう一度お試しください。", 403
+        return None
 
     @app.post("/api/toggle")
     def toggle():
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify(error="JSON形式で送信してください。"), 400
+        error = recaptcha_error(data.get("recaptcha_token"), "TOGGLE")
+        if error:
+            return jsonify(error=error[0]), error[1]
         return jsonify(database.toggle())
 
     @app.post("/api/chat")
@@ -171,6 +237,10 @@ def create_app(test_config=None):
             return jsonify(error="質問は1〜1000文字で入力してください。"), 400
         if not isinstance(history, list) or len(history) > 6:
             return jsonify(error="会話履歴の形式が正しくありません。"), 400
+
+        error = recaptcha_error(data.get("recaptcha_token"), "CHAT")
+        if error:
+            return jsonify(error=error[0]), error[1]
 
         contents = []
         for entry in history:
