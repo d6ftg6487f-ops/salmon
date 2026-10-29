@@ -1,8 +1,9 @@
 import hashlib
 import hmac
 import os
+from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, jsonify, render_template, request, send_file, session
 from sqlalchemy import create_engine, text
 
 
@@ -153,6 +154,7 @@ def create_app(test_config=None):
         ),
         VERTEX_AI_LOCATION=os.environ.get("VERTEX_AI_LOCATION", "global"),
         GEMINI_MODEL=os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+        FRONTEND_DIST_DIR=os.environ.get("FRONTEND_DIST_DIR"),
     )
     if test_config:
         app.config.update(test_config)
@@ -179,6 +181,21 @@ def create_app(test_config=None):
 
     database = BulbDatabase(app.config)
     app.extensions["bulb_database"] = database
+
+    def resolve_frontend_html(page_name):
+        dist_dir = app.config.get("FRONTEND_DIST_DIR")
+        if not dist_dir:
+            return None
+        candidate = Path(dist_dir) / page_name
+        if candidate.is_file():
+            return candidate
+        return None
+
+    def render_frontend_page(page_name, **context):
+        static_file = resolve_frontend_html(page_name)
+        if static_file is not None:
+            return send_file(static_file, mimetype="text/html")
+        return render_template(page_name, **context)
 
     def recaptcha_error(token, expected_action):
         if not isinstance(token, str) or not token:
@@ -233,11 +250,11 @@ def create_app(test_config=None):
     @app.get("/")
     def index():
         if not session.get("site_verified"):
-            return render_template(
+            return render_frontend_page(
                 "entry.html",
                 recaptcha_site_key=app.config["RECAPTCHA_SITE_KEY"],
             )
-        return render_template("index.html", state=database.get_state())
+        return render_frontend_page("index.html", state=database.get_state())
 
     @app.post("/api/site-entry")
     def site_entry():
@@ -344,3 +361,4 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+

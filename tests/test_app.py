@@ -70,6 +70,34 @@ class BulbAppTests(unittest.TestCase):
         self.assertNotIn("enterprise.js".encode(), app_response.data)
         self.assertNotIn("g-recaptcha".encode(), app_response.data)
 
+    def test_static_frontend_files_are_used_when_configured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entry_path = Path(directory) / "entry.html"
+            index_path = Path(directory) / "index.html"
+            entry_path.write_text("<html>entry static</html>", encoding="utf-8")
+            index_path.write_text("<html>index static</html>", encoding="utf-8")
+
+            app = create_app(
+                {
+                    "TESTING": True,
+                    "SECRET_KEY": "test-secret",
+                    "DATABASE_URL": "sqlite:///:memory:",
+                    "FRONTEND_DIST_DIR": directory,
+                    "RECAPTCHA_PROJECT_ID": "test-project",
+                    "RECAPTCHA_CLIENT": FakeRecaptchaClient(),
+                }
+            )
+            try:
+                client = app.test_client()
+                self.assertIn(b"entry static", client.get("/").data)
+
+                with client.session_transaction() as session:
+                    session["site_verified"] = True
+
+                self.assertIn(b"index static", client.get("/").data)
+            finally:
+                app.extensions["bulb_database"].engine.dispose()
+
     def test_api_operations_are_blocked_until_site_entry(self):
         toggle_response = self.client.post("/api/toggle")
         chat_response = self.client.post("/api/chat", json={"message": "質問"})
@@ -310,3 +338,4 @@ class BulbAppTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
